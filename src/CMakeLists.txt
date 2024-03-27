@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.22)
+project(tinyrpc)
+
+set(CMAKE_CXX_STANDARD 17)
+aux_source_directory(./net SRC)
+aux_source_directory(./common SRC)
+# set(LIBRARY_OUTPUT_PATH ${LIBPATH})
+# add_library(log STATIC ${SRC})
+link_libraries(tinyxml)
+set(EXECUTABLE_OUTPUT_PATH ${EXEPATH})
+add_executable(log a.cpp ${SRC})
