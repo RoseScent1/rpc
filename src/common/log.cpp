@@ -24,9 +24,12 @@ void Logger::PushLog(const std::string &msg) {
 
 void Logger::Log() {
   std::unique_lock<std::mutex> lock(latch_);
-  while (!buffer_.empty()) {
-    std::cout << buffer_.front();
-    buffer_.pop();
+	std::queue<std::string> tmp;
+	tmp.swap(buffer_);
+	lock.unlock();
+  while (!tmp.empty()) {
+    std::cout << tmp.front();
+    tmp.pop();
   }
 }
 

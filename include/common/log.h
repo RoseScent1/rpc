@@ -6,16 +6,17 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <utility>
 namespace rocket {
 // 格式化字符串
 template <typename... Args>
 std::string formatString(const char *s, Args &&...args) {
-  auto size = snprintf(nullptr, 0, s, args...);
+  auto size = snprintf(nullptr, 0, s, std::forward<Args>(args)...);
 
   std::string result;
   if (size > 0) {
     result.resize(size);
-    snprintf(&result[0], size + 1, s, args...);
+    snprintf(&result[0], size + 1, s, std::forward<Args>(args)...);
   }
 
   return result;
