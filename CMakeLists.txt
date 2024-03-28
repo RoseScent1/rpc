@@ -10,3 +10,4 @@ include_directories(
 # set(LIBPATH ${PROJECT_SOURCE_DIR}/lib)
 
 add_subdirectory(src)
+add_subdirectory(test)

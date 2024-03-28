@@ -1,5 +1,7 @@
 #include "util.h"
+#include <cstddef>
 #include <sys/syscall.h>
+#include <sys/time.h>
 #include <unistd.h>
 namespace rocket {
 static int g_pid = 0;
@@ -8,4 +10,10 @@ pid_t getPid() { return g_pid == 0 ? getpid() : g_pid; }
 pid_t getThreadid() {
   return g_thread_id == 0 ? syscall(SYS_gettid) : g_thread_id;
 }
+int64_t getNowMs() {
+  timeval now_time;
+  gettimeofday(&now_time, nullptr);
+  return now_time.tv_sec * 1000 + now_time.tv_usec / 1000;
+}
+
 } // namespace rocket

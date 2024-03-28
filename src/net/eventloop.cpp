@@ -1,5 +1,7 @@
 #include "eventloop.h"
 #include "log.h"
+#include "timer.h"
+#include "timerevent.h"
 #include "util.h"
 #include <algorithm>
 #include <asm-generic/errno-base.h>
@@ -39,10 +41,12 @@ EventLoop::EventLoop() : is_stop_(false) {
     exit(0);
   }
   InitWakeupEvent();
-	AddEpollEvent(wakeup_fd_event_);
+  InitTimer();
+  AddEpollEvent(wakeup_fd_event_);
   INFOLOG("successful create event loop in thread %d", thread_id_);
   current_eventloop = this;
 }
+
 EventLoop::~EventLoop() {
   close(epoll_fd_);
   close(wakeup_fd_);
@@ -50,7 +54,17 @@ EventLoop::~EventLoop() {
     delete wakeup_fd_event_;
     wakeup_fd_event_ = nullptr;
   }
+  if (timer_ != nullptr) {
+    delete timer_;
+    timer_ = nullptr;
+  }
 }
+
+void EventLoop::InitTimer() {
+  timer_ = new Timer();
+  AddEpollEvent(timer_);
+}
+
 void EventLoop::InitWakeupEvent() {
   wakeup_fd_ = eventfd(0, EFD_NONBLOCK);
   if (wakeup_fd_ < 0) {
@@ -67,11 +81,16 @@ void EventLoop::InitWakeupEvent() {
     DEBUGLOG("read full bytes from wakeup fd[%d]", wakeup_fd_);
   });
 }
+
+void EventLoop::AddTimerEvent(TimerEvent::s_ptr event) {
+  timer_->AddTimerEvent(event);
+}
+
 void EventLoop::Loop() {
   while (!is_stop_) {
     std::unique_lock<std::mutex> lock(latch_);
     std::queue<std::function<void()>> task_queue;
-		task_queue.swap(task_queue_);
+    task_queue.swap(task_queue_);
     lock.unlock();
     while (!task_queue.empty()) {
       task_queue.front()();
@@ -97,18 +116,21 @@ void EventLoop::Loop() {
         }
         if (trigger_event.events & EPOLLIN) {
           DEBUGLOG("fd[%d] trigger EPOLLIN", fd_event->GetFd())
-          addTask(fd_event->Handler(FdEvent::IN_EVENT));
+          AddTask(fd_event->Handler(FdEvent::IN_EVENT));
         }
         if (trigger_event.events & EPOLLOUT) {
           DEBUGLOG("fd[%d] trigger EPOLLOUT", fd_event->GetFd())
-          addTask(fd_event->Handler(FdEvent::OUT_EVENT));
+          AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
         }
       }
     }
   }
 }
+
 void EventLoop::WakeUp() { wakeup_fd_event_->WakeUp(); }
+
 void EventLoop::Stop() { is_stop_ = true; }
+
 void EventLoop::AddEpollEvent(FdEvent *event) {
   if (IsInLoopThread()) {
     int op = EPOLL_CTL_ADD;
@@ -121,7 +143,7 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
       ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] = ",
                event->GetFd(), errno, strerror(errno));
     }
-		listen_fds_.insert(event->GetFd());
+    listen_fds_.insert(event->GetFd());
     DEBUGLOG("add event success, fd[%d]", event->GetFd());
   } else {
     auto cb = [this, event]() {
@@ -136,9 +158,10 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
       }
       DEBUGLOG("add event success, fd[%d]", event->GetFd());
     };
-    addTask(cb);
+    AddTask(cb);
   };
 }
+
 void EventLoop::DeleteEpollEvent(FdEvent *event) {
   if (IsInLoopThread()) {
     if (listen_fds_.find(event->GetFd()) == listen_fds_.end()) {
@@ -165,51 +188,18 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
       }
       DEBUGLOG("delete event success, fd[%d]", event->GetFd());
     };
-    addTask(cb, true);
+    AddTask(cb, true);
   }
 }
 
 void EventLoop::DealWakeUp() {}
 bool EventLoop::IsInLoopThread() { return getThreadid() == thread_id_; }
-void EventLoop::addTask(std::function<void()> callback, bool wakeup) {
+void EventLoop::AddTask(std::function<void()> callback, bool wakeup) {
   std::unique_lock<std::mutex> lock(latch_);
   task_queue_.push(callback);
   if (wakeup) {
     WakeUp();
   }
 }
-// FdEvent
 
-FdEvent::FdEvent(int fd) : fd_(fd) {
-  memset(&listen_event_, 0, sizeof(listen_event_));
-}
-FdEvent::~FdEvent() {}
-std::function<void()> FdEvent::Handler(TriggerEvent event_type) {
-  if (event_type == TriggerEvent::IN_EVENT) {
-    return read_callback_;
-  }
-  return write_callback_;
-}
-
-void FdEvent::Listen(TriggerEvent event_type, std::function<void()> callback) {
-  if (event_type == TriggerEvent::IN_EVENT) {
-    listen_event_.events |= EPOLLIN;
-    read_callback_ = callback;
-  } else {
-    listen_event_.events |= EPOLLOUT;
-    write_callback_ = callback;
-  }
-  listen_event_.data.ptr = this;
-}
-
-// WakeUpFdEvent
-WakeUpFdEvent::WakeUpFdEvent(int fd) : FdEvent(fd) {}
-WakeUpFdEvent::~WakeUpFdEvent(){};
-void WakeUpFdEvent::WakeUp() {
-  char buff[8] = "a";
-  int rt = write(fd_, buff, 8);
-  if (rt != 8) {
-    ERRORLOG("write to wakeup fd less than 8 bytes, fd[%d]", fd_);
-  }
-}
 } // namespace rocket
