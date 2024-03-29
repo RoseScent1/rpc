@@ -1,7 +1,7 @@
 #include "timer.h"
-#include "eventloop.h"
+#include "event_loop.h"
 #include "log.h"
-#include "timerevent.h"
+#include "timer_event.h"
 #include "util.h"
 #include <asm-generic/errno-base.h>
 #include <bits/types/struct_itimerspec.h>
@@ -51,7 +51,7 @@ void Timer::ResetArriveTime() {
     ERRORLOG("timerfd_settime error, errno = %d, %s", errno,
              std::strerror(errno));
   }
-  DEBUGLOG("timer reset to %lld", now_time + interval);
+  DEBUGLOG("fd = %d, timer reset to %lld", fd_, now_time + interval);
 }
 
 void Timer::AddTimerEvent(TimerEvent::s_ptr event) {

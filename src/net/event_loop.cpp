@@ -1,7 +1,7 @@
-#include "eventloop.h"
+#include "event_loop.h"
 #include "log.h"
 #include "timer.h"
-#include "timerevent.h"
+#include "timer_event.h"
 #include "util.h"
 #include <algorithm>
 #include <asm-generic/errno-base.h>
@@ -43,7 +43,7 @@ EventLoop::EventLoop() : is_stop_(false) {
   InitWakeupEvent();
   InitTimer();
   AddEpollEvent(wakeup_fd_event_);
-  INFOLOG("successful create event loop in thread %d", thread_id_);
+  INFOLOG("successful create wakeup event loop in thread %d", thread_id_);
   current_eventloop = this;
 }
 
@@ -80,6 +80,7 @@ void EventLoop::InitWakeupEvent() {
       ;
     DEBUGLOG("read full bytes from wakeup fd[%d]", wakeup_fd_);
   });
+  DEBUGLOG("create wake up fd, fd = %d", wakeup_fd_);
 }
 
 void EventLoop::AddTimerEvent(TimerEvent::s_ptr event) {
@@ -106,7 +107,7 @@ void EventLoop::Loop() {
     int rt = epoll_wait(epoll_fd_, result_events, epoll_max_events, timeout);
     DEBUGLOG("end epoll_wai rt = %d", rt);
     if (rt < 0) {
-      ERRORLOG("epoll_wait error, error info[%s]", errno);
+      ERRORLOG("epoll_wait error, error info[%s]", strerror(errno));
     } else {
       for (int i = 0; i < rt; ++i) {
         auto trigger_event = result_events[i];
@@ -127,7 +128,10 @@ void EventLoop::Loop() {
   }
 }
 
-void EventLoop::WakeUp() { wakeup_fd_event_->WakeUp(); }
+void EventLoop::WakeUp() {
+  INFOLOG("wake up fd=%d", wakeup_fd_);
+  wakeup_fd_event_->WakeUp();
+}
 
 void EventLoop::Stop() { is_stop_ = true; }
 
@@ -138,7 +142,7 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
       op = EPOLL_CTL_MOD;
     }
     epoll_event tmp = event->GetEpollEvent();
-    INFOLOG("add event events[%d]", (int)tmp.events);
+    INFOLOG("add event events[%d],fd = %d", (int)tmp.events, event->GetFd());
     if ((epoll_ctl(epoll_fd_, op, event->GetFd(), &tmp)) == -1) {
       ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] = ",
                event->GetFd(), errno, strerror(errno));

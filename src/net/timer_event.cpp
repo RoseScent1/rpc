@@ -1,4 +1,4 @@
-#include "timerevent.h"
+#include "timer_event.h"
 #include "log.h"
 #include "util.h"
 namespace rocket {
@@ -21,7 +21,7 @@ int64_t TimerEvent::GetArriveTime() { return arrive_time_; }
 
 void TimerEvent::ResetArriveTime() {
   arrive_time_ = getNowMs() + interval_;
-  DEBUGLOG("successful create timer event, will excute at [%lld]",
+  DEBUGLOG("successful Reset timer event, will excute at [%lld]",
            arrive_time_);
 }
 
