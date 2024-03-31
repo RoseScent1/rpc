@@ -52,11 +52,14 @@ int TcpAcceptor::Accept() {
     if (client_fd < 0) {
       ERRORLOG("accept error errno %d, %s", errno, strerror(errno));
     }
-		INFOLOG("A client have accepted ,client addr=%s",IPNetAddr(client_addr).ToString().c_str());
-		return client_fd;
+    INFOLOG("A client have accepted ,client addr=%s",
+            IPNetAddr(client_addr).ToString().c_str());
+    return client_fd;
   } else {
     //...
   }
 }
+
+int TcpAcceptor::GetListenFd() { return listen_fd_; }
 
 } // namespace rocket

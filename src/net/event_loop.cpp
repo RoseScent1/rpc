@@ -206,4 +206,8 @@ void EventLoop::AddTask(std::function<void()> callback, bool wakeup) {
   }
 }
 
+EventLoop *EventLoop::GetCurrentEventLoop() {
+  return current_eventloop ? current_eventloop
+                           : current_eventloop = new EventLoop();
+}
 } // namespace rocket

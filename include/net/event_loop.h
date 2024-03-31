@@ -22,6 +22,7 @@ public:
   void AddTask(std::function<void()> callback, bool wakeup = false);
 	void AddTimerEvent(TimerEvent::s_ptr event);
 
+	static EventLoop* GetCurrentEventLoop();
 private:
   void InitWakeupEvent();
   void DealWakeUp();
