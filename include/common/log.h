@@ -10,16 +10,16 @@
 namespace rocket {
 // 格式化字符串
 template <typename... Args>
-std::string formatString(const char *s, Args &&...args) {
-  auto size = snprintf(nullptr, 0, s, std::forward<Args>(args)...);
+std::string formatString(const char* format, Args&&... args) {
+    auto size = snprintf(nullptr, 0, format, std::forward<Args>(args)...);
 
-  std::string result;
-  if (size > 0) {
-    result.resize(size);
-    snprintf(&result[0], size + 1, s, std::forward<Args>(args)...);
-  }
+    std::string result;
+    if (size > 0) {
+        result.resize(size);
+        snprintf(&result[0], size + 1, format, std::forward<Args>(args)...);
+    }
 
-  return result;
+    return result;
 }
 //  打印log宏
 #define DEBUGLOG(str, ...)                                                     \
@@ -95,7 +95,7 @@ private:
   // 文件吗
   std::string file_name_;
   // 行号
-  int32_t file_line_;
+  // int32_t file_line_;
   // 进程号,线程号,日志级别
   int32_t pid_;
   int32_t thread_id_;

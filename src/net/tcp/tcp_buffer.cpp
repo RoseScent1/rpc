@@ -3,8 +3,8 @@
 #include <cstring>
 
 namespace rocket {
-TcpBuffer::TcpBuffer(int size) : size_(size), read_index_(0), write_index_(0) {
-  buffer_.resize(0);
+TcpBuffer::TcpBuffer(int size)  :read_index_(0), write_index_(0),size_(size) {
+  buffer_.resize(size);
 }
 
 TcpBuffer::~TcpBuffer() {}
@@ -30,6 +30,7 @@ void TcpBuffer::ReadFromBuffer(std::string &s, int size) {
   if (ReadAble() == 0) {
     return;
   }
+  s.resize(size);
   size = std::min(ReadAble(), size);
   memcpy(&s[0], &buffer_[read_index_], size);
   read_index_ += size;

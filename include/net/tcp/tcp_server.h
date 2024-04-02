@@ -4,6 +4,8 @@
 #include "io_thread_group.h"
 #include "net_addr.h"
 #include "tcp_acceptor.h"
+#include "tcp_connection.h"
+#include <set>
 namespace rocket {
 
 class TcpServer {
@@ -28,5 +30,6 @@ private:
   FdEvent *listen_fd_event_;
 
 	int client_count_;
+	std::set<TcpConnection::s_ptr> connections_;
 };
 } // namespace rocket

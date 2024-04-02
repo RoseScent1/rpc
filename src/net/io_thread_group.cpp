@@ -2,7 +2,6 @@
 #include "io_thread.h"
 #include "log.h"
 
-namespace rocket {}
 namespace rocket {
 
 IOThreadGroup::IOThreadGroup(int size) : size_(size), index_(-1) {

@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <fcntl.h>
 #include <iterator>
 #include <mutex>
 #include <queue>
@@ -41,6 +42,14 @@ void FdEvent::Listen(TriggerEvent event_type, std::function<void()> callback) {
   listen_event_.data.ptr = this;
 }
 
+void FdEvent::Cancel(TriggerEvent event_type) {
+  if (event_type == TriggerEvent::IN_EVENT) {
+    listen_event_.events &= ~EPOLLIN;
+  } else {
+    listen_event_.events &= ~EPOLLOUT;
+	}
+}
+
 // WakeUpFdEvent
 WakeUpFdEvent::WakeUpFdEvent(int fd) : FdEvent(fd) {}
 
@@ -52,5 +61,13 @@ void WakeUpFdEvent::WakeUp() {
   if (rt != 8) {
     ERRORLOG("write to wakeup fd less than 8 bytes, fd[%d]", fd_);
   }
+}
+
+void FdEvent::SetNonBlock() {
+  int flag = fcntl(fd_, F_GETFL, 0);
+  if (flag & O_NONBLOCK) {
+    return;
+  }
+  fcntl(fd_, F_SETFL, flag & O_NONBLOCK);
 }
 } // namespace rocket

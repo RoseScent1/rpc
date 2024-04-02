@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
+#include <memory>
 #include <netinet/in.h>
 #include <sys/socket.h>
 namespace rocket {
@@ -42,7 +43,7 @@ TcpAcceptor::TcpAcceptor(NetAddr::s_ptr addr) : addr_(addr) {
 }
 TcpAcceptor::~TcpAcceptor() {}
 
-int TcpAcceptor::Accept() {
+std::pair<int, NetAddr::s_ptr> TcpAcceptor::Accept() {
   if (family_ == AF_INET) {
     sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -52,12 +53,15 @@ int TcpAcceptor::Accept() {
     if (client_fd < 0) {
       ERRORLOG("accept error errno %d, %s", errno, strerror(errno));
     }
+    //客户端addr,用于返回值
+    IPNetAddr::s_ptr addr = std::make_shared<IPNetAddr>(client_addr);
     INFOLOG("A client have accepted ,client addr=%s",
             IPNetAddr(client_addr).ToString().c_str());
-    return client_fd;
+    return {client_fd, addr};
   } else {
     //...
   }
+	return {};
 }
 
 int TcpAcceptor::GetListenFd() { return listen_fd_; }

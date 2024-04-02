@@ -5,7 +5,7 @@ namespace rocket {
 
 TimerEvent::TimerEvent(int interval, bool is_repeated,
                        std::function<void()> callback)
-    : interval_(interval), is_repeated_(is_repeated), callback_(callback) {
+    : interval_(interval),  callback_(callback),is_repeated_(is_repeated) {
   ResetArriveTime();
 }
 

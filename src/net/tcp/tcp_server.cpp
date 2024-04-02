@@ -1,10 +1,13 @@
 #include "tcp_server.h"
 #include "event_loop.h"
 #include "fd_event.h"
+#include "io_thread.h"
 #include "io_thread_group.h"
 #include "log.h"
 #include "tcp_acceptor.h"
+#include "tcp_connection.h"
 #include <functional>
+#include <memory>
 
 namespace rocket {
 
@@ -29,12 +32,16 @@ TcpServer::~TcpServer() {
 }
 
 void TcpServer::OnAccept() {
-  int client_fd = acceptor_->Accept();
+  auto [client_fd,client_addr] = acceptor_->Accept();
 
   ++client_count_;
   // TODO: 把client_fd添加到IO线程
   // io_thread_group_->GetIOThread()->GetEventloop()->AddEpollEvent(FdEvent
   // *event);
+	IOThread* io_thread = io_thread_group_->GetIOThread();
+	TcpConnection::s_ptr connection = std::make_shared<TcpConnection>(io_thread,client_fd,128,client_addr);
+	connection->Setstate(TcpConnection::TcpState::Connected);
+	connections_.insert(connection);
   INFOLOG("TcpServer success get client, fd=%d", client_fd);
 }
 
@@ -44,7 +51,7 @@ void TcpServer::init() {
 
   main_event_loop_ = EventLoop::GetCurrentEventLoop();
 
-  io_thread_group_ = new IOThreadGroup(4);
+  io_thread_group_ = new IOThreadGroup(2);
   listen_fd_event_ = new FdEvent(acceptor_->GetListenFd());
   listen_fd_event_->Listen(FdEvent::IN_EVENT,
                            std::bind(&TcpServer::OnAccept, this));

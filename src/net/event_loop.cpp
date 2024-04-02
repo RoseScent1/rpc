@@ -101,11 +101,11 @@ void EventLoop::Loop() {
     int timeout = epoll_max_timeout;
     epoll_event result_events[epoll_max_events];
     for (int i = 0; i < epoll_max_events; ++i) {
-      result_events[i].events = -1;
+      result_events[i].events = 0;
     }
     DEBUGLOG("begin to wait");
     int rt = epoll_wait(epoll_fd_, result_events, epoll_max_events, timeout);
-    DEBUGLOG("end epoll_wai rt = %d", rt);
+    DEBUGLOG("end  epoll_wait rt= %d", rt);
     if (rt < 0) {
       ERRORLOG("epoll_wait error, error info[%s]", strerror(errno));
     } else {
@@ -144,7 +144,7 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
     epoll_event tmp = event->GetEpollEvent();
     INFOLOG("add event events[%d],fd = %d", (int)tmp.events, event->GetFd());
     if ((epoll_ctl(epoll_fd_, op, event->GetFd(), &tmp)) == -1) {
-      ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] = ",
+      ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] =%s",
                event->GetFd(), errno, strerror(errno));
     }
     listen_fds_.insert(event->GetFd());
@@ -156,10 +156,12 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
         op = EPOLL_CTL_MOD;
       }
       epoll_event tmp = event->GetEpollEvent();
+      INFOLOG("add event events[%d],fd = %d", (int)tmp.events, event->GetFd());
       if ((epoll_ctl(epoll_fd_, op, event->GetFd(), &tmp)) == -1) {
         ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] = ",
                  event->GetFd(), errno, strerror(errno));
       }
+			listen_fds_.insert(event->GetFd());
       DEBUGLOG("add event success, fd[%d]", event->GetFd());
     };
     AddTask(cb);
@@ -178,6 +180,7 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
       ERRORLOG("failed epoll_ctl when delete fd %d, error info[%d] = ",
                event->GetFd(), errno, strerror(errno));
     }
+		listen_fds_.erase(event->GetFd());
     DEBUGLOG("delete event success, fd[%d]", event->GetFd());
   } else {
     auto cb = [this, event] {
@@ -190,6 +193,7 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
         ERRORLOG("failed epoll_ctl when delete fd %d, error info[%d] = ",
                  event->GetFd(), errno, strerror(errno));
       }
+      listen_fds_.erase(event->GetFd());
       DEBUGLOG("delete event success, fd[%d]", event->GetFd());
     };
     AddTask(cb, true);

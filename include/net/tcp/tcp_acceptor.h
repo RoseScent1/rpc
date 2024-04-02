@@ -1,6 +1,7 @@
 #pragma once
 #include "net_addr.h"
 #include <memory>
+#include <utility>
 namespace rocket {
 class TcpAcceptor {
 public:
@@ -8,11 +9,11 @@ public:
 	TcpAcceptor(NetAddr::s_ptr addr);
 	~TcpAcceptor();
 
-	int Accept();
+	std::pair<int,NetAddr::s_ptr> Accept();
 
 	int GetListenFd();
 private:
-// ip:port addr;
+// 本地ip:port addr;
 // listenfd
 	NetAddr::s_ptr addr_;
 	int listen_fd_;

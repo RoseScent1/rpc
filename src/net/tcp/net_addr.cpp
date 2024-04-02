@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 namespace rocket {
 IPNetAddr::IPNetAddr(const std::string &ip, uint16_t port)
-    : ip_(ip), port_(port) {
+    : port_(port), ip_(ip) {
   memset(&addr_, 0, sizeof(addr_));
   addr_.sin_family = AF_INET;
   addr_.sin_addr.s_addr = inet_addr(ip.c_str());
