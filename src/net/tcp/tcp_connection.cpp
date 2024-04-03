@@ -1,4 +1,5 @@
 #include "tcp_connection.h"
+#include "event_loop.h"
 #include "fd_event.h"
 #include "fd_event_group.h"
 #include "log.h"
@@ -13,9 +14,10 @@
 
 namespace rocket {
 
-TcpConnection::TcpConnection(IOThread *io_thread, int fd, int buffer_size,
+TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
                              NetAddr::s_ptr client_addr)
-    : client_addr_(client_addr), io_thread_(io_thread), state_(NotConnected) {
+    : client_addr_(client_addr), event_loop_(event_loop), state_(NotConnected),
+      connection_type(Server) {
 
   in_buffer_ = std::make_shared<TcpBuffer>(buffer_size);
   out_buffer_ = std::make_shared<TcpBuffer>(buffer_size);
@@ -23,16 +25,15 @@ TcpConnection::TcpConnection(IOThread *io_thread, int fd, int buffer_size,
   fd_event_->SetNonBlock();
 
   fd_event_->Listen(FdEvent::IN_EVENT, std::bind(&TcpConnection::Read, this));
-	io_thread_->GetEventloop()->AddEpollEvent(fd_event_.get());
-
+  event_loop_->AddEpollEvent(fd_event_.get());
 }
-TcpConnection::~TcpConnection() {
-	DEBUGLOG("Tcpconnection destory");
-}
+TcpConnection::~TcpConnection() { DEBUGLOG("Tcpconnection destory"); }
 
 void TcpConnection::Setstate(const TcpState state) { state_ = state; }
 
 TcpConnection::TcpState TcpConnection::GetState() const { return state_; }
+
+void TcpConnection::SetType(TcpConnection::ConnectionType type) { connection_type = type; }
 
 void TcpConnection::Read() {
   // 从socket缓冲区调用系统read读取数据到inbuffer
@@ -82,7 +83,7 @@ void TcpConnection::Read() {
 
   // 处理关闭连接
   if (is_close) {
-    DEBUGLOG("peer closed, peer addr = %s, client_fd = %d",
+    DEBUGLOG("client closed, client addr = %s, client_fd = %d",
              client_addr_->ToString().c_str(), fd_event_->GetFd());
     Clear();
     return;
@@ -101,10 +102,10 @@ void TcpConnection::Execute() {
   in_buffer_->ReadFromBuffer(buffer, in_buffer_->ReadAble());
 
   INFOLOG("sucess get request from client[%s],out buffer =%s",
-          client_addr_->ToString().c_str(),buffer.c_str());
+          client_addr_->ToString().c_str(), buffer.c_str());
   out_buffer_->WriteToBuffer(buffer.c_str(), buffer.size());
   fd_event_->Listen(FdEvent::OUT_EVENT, std::bind(&TcpConnection::Write, this));
-	io_thread_->GetEventloop()->AddEpollEvent(fd_event_.get());
+  event_loop_->AddEpollEvent(fd_event_.get());
 }
 
 void TcpConnection::Write() {
@@ -116,21 +117,21 @@ void TcpConnection::Write() {
 
   bool is_write_all{false};
   while (!is_write_all) {
-		std::cout << out_buffer_->buffer_ << std::endl;
+    std::cout << out_buffer_->buffer_ << std::endl;
     int write_size = out_buffer_->ReadAble();
     if (write_size == 0) {
       DEBUGLOG("no data need to send to client [%s]",
                client_addr_->ToString().c_str());
-			is_write_all = true;
+      is_write_all = true;
       break;
     }
     int read_index = out_buffer_->ReadIndex();
     int rt = write(fd_event_->GetFd(), &out_buffer_->buffer_[read_index],
                    write_size);
     if (rt >= write_size) {
-      DEBUGLOG("write success %d bytes client [%s]",rt,
+      DEBUGLOG("write success %d bytes client [%s]", rt,
                client_addr_->ToString().c_str());
-			is_write_all = true;
+      is_write_all = true;
       break;
     }
     if (rt == -1 && errno == EAGAIN) {
@@ -140,10 +141,10 @@ void TcpConnection::Write() {
     }
     out_buffer_->ModifyReadIndex(rt);
   }
-	if (is_write_all) {
-		fd_event_->Cancel(FdEvent::OUT_EVENT);
-		io_thread_->GetEventloop()->AddEpollEvent(fd_event_.get());
-	}
+  if (is_write_all) {
+    fd_event_->Cancel(FdEvent::OUT_EVENT);
+    event_loop_->AddEpollEvent(fd_event_.get());
+  }
 }
 
 void TcpConnection::Clear() {
@@ -151,9 +152,9 @@ void TcpConnection::Clear() {
   if (state_ == Closed) {
     return;
   }
-	fd_event_->Cancel(FdEvent::IN_EVENT);
-	fd_event_->Cancel(FdEvent::OUT_EVENT);
-  io_thread_->GetEventloop()->DeleteEpollEvent(fd_event_.get());
+  fd_event_->Cancel(FdEvent::IN_EVENT);
+  fd_event_->Cancel(FdEvent::OUT_EVENT);
+  event_loop_->DeleteEpollEvent(fd_event_.get());
   state_ = Closed;
 }
 

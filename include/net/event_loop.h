@@ -40,6 +40,7 @@ private:
   std::mutex latch_;
   std::set<int> listen_fds_;
   std::queue<std::function<void()>> task_queue_;
+	bool is_loop_{false};
 };
 
 } // namespace rocket

@@ -97,7 +97,9 @@ void EventLoop::Loop() {
       task_queue.front()();
       task_queue.pop();
     }
-
+		if (is_loop_) {
+			return ;
+		}
     int timeout = epoll_max_timeout;
     epoll_event result_events[epoll_max_events];
     for (int i = 0; i < epoll_max_events; ++i) {
@@ -126,6 +128,7 @@ void EventLoop::Loop() {
       }
     }
   }
+	is_loop_ = true;
 }
 
 void EventLoop::WakeUp() {
@@ -161,7 +164,7 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
         ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] = ",
                  event->GetFd(), errno, strerror(errno));
       }
-			listen_fds_.insert(event->GetFd());
+      listen_fds_.insert(event->GetFd());
       DEBUGLOG("add event success, fd[%d]", event->GetFd());
     };
     AddTask(cb);
@@ -180,7 +183,7 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
       ERRORLOG("failed epoll_ctl when delete fd %d, error info[%d] = ",
                event->GetFd(), errno, strerror(errno));
     }
-		listen_fds_.erase(event->GetFd());
+    listen_fds_.erase(event->GetFd());
     DEBUGLOG("delete event success, fd[%d]", event->GetFd());
   } else {
     auto cb = [this, event] {

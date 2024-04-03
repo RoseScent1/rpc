@@ -39,7 +39,7 @@ void TcpServer::OnAccept() {
   // io_thread_group_->GetIOThread()->GetEventloop()->AddEpollEvent(FdEvent
   // *event);
 	IOThread* io_thread = io_thread_group_->GetIOThread();
-	TcpConnection::s_ptr connection = std::make_shared<TcpConnection>(io_thread,client_fd,128,client_addr);
+	TcpConnection::s_ptr connection = std::make_shared<TcpConnection>(io_thread->GetEventloop(),client_fd,128,client_addr);
 	connection->Setstate(TcpConnection::TcpState::Connected);
 	connections_.insert(connection);
   INFOLOG("TcpServer success get client, fd=%d", client_fd);
