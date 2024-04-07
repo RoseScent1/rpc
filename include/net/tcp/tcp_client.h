@@ -1,6 +1,6 @@
 #pragma once
 
-#include "abstrack_protocol.h"
+#include "abstract_protocol.h"
 #include "event_loop.h"
 #include "fd_event.h"
 #include "net_addr.h"
@@ -21,7 +21,7 @@ public:
 
 	// 异步读取message
 	// 读取message成功调用done,入参就是message对象
-	void ReadMessage(AbstractProtocol::s_ptr message, std::function<void(AbstractProtocol::s_ptr)> done );
+	void ReadMessage(const std::string &req_id,std::function<void(AbstractProtocol::s_ptr)> done );
 
 
 

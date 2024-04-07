@@ -19,7 +19,7 @@ public:
   void AddEpollEvent(FdEvent *event);
   void DeleteEpollEvent(FdEvent *event);
   bool IsInLoopThread();
-  void AddTask(std::function<void()> callback, bool wakeup = false);
+  void AddTask(std::function<void()> callback, bool wakeup = true);
 	void AddTimerEvent(TimerEvent::s_ptr event);
 
 	static EventLoop* GetCurrentEventLoop();

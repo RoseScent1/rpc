@@ -21,8 +21,8 @@ TcpClient::TcpClient(NetAddr::s_ptr ser_addr) : ser_addr_(ser_addr) {
   }
   fd_event_ = FdEventGroup::GetFdEventGRoup()->GetFdEvent(fd_);
   fd_event_->SetNonBlock();
-  connection_ =
-      std::make_shared<TcpConnection>(event_loop_, fd_, 128, ser_addr);
+  connection_ = std::make_shared<TcpConnection>(
+      event_loop_, fd_, 128, ser_addr, TcpConnection::ConnectionType::Client);
   connection_->SetType(TcpConnection::ConnectionType::Client);
 }
 TcpClient::~TcpClient() {
@@ -38,26 +38,33 @@ void TcpClient::Connect(std::function<void()> done) {
   if (rt == 0) {
     INFOLOG("connect addr[%s] success", ser_addr_->ToString().c_str());
     if (done) {
+      connection_->Setstate(TcpConnection::Connected);
       done();
     }
+    event_loop_->Loop();
   } else if (rt == -1) {
     if (errno == EINPROGRESS) {
       // epoll监听可写事件,判断错误码
       fd_event_->Listen(FdEvent::OUT_EVENT, [this, done]() {
+        bool is_connect{false};
         int error = 0;
         socklen_t len = sizeof(error);
         getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &len);
         if (error == 0) {
           INFOLOG("connect addr[%s] success", ser_addr_->ToString().c_str());
-          if (done) {
-            done();
-          }
+          is_connect = true;
         } else {
           ERRORLOG("connect error,errno = %d, error = %s", errno,
                    strerror(errno));
         }
         fd_event_->Cancel(FdEvent::OUT_EVENT);
         event_loop_->AddEpollEvent(fd_event_.get());
+
+        // 连接成功才会执行
+        if (is_connect && done) {
+          connection_->Setstate(TcpConnection::Connected);
+          done();
+        }
       });
       event_loop_->AddEpollEvent(fd_event_.get());
       event_loop_->Loop();
@@ -71,12 +78,23 @@ void TcpClient::Connect(std::function<void()> done) {
 // 发送message成功调用done,入参就是message对象
 void TcpClient::WriteMessage(
     AbstractProtocol::s_ptr message,
-    std::function<void(AbstractProtocol::s_ptr)> done) {}
+    std::function<void(AbstractProtocol::s_ptr)> done) {
+  // 1. 把message对象写入到connenct的buffer,done写入
+  // 2. 启功connection可写事件
+  connection_->PushWriteMessage(message, done);
+  connection_->ListenWrite();
+}
 
 // 异步读取message
 // 读取message成功调用done,入参就是message对象
-void TcpClient::ReadMessage(AbstractProtocol::s_ptr message,
-                            std::function<void(AbstractProtocol::s_ptr)> done) {
+void TcpClient::ReadMessage(
+    const std::string &req_id, std::function<void(AbstractProtocol::s_ptr)>
+        done) {
+
+  // 1. 监听可写
+  // 2. 从buffer里decode对象,判断req_id是否相等，相等则读成功，执行回调函数
+	connection_->PushReadMessage(req_id, done);
+	connection_->listenRead();
 }
 
 } // namespace rocket

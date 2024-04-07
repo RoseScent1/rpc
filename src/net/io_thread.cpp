@@ -32,7 +32,7 @@ IOThread::~IOThread() {
 EventLoop *IOThread::GetEventloop() { return event_loop_; }
 
 void IOThread::Start() {
-  DEBUGLOG("now invoke IOThread");
+  DEBUGLOG("now invoke IOThread,%d",getThreadid());
   sem_post(&sem_start_);
 }
 
