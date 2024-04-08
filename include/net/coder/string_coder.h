@@ -4,9 +4,9 @@
 #include "abstract_protocol.h"
 #include <memory>
 namespace rocket {
-class StringProtocol : public AbstractProtocol {
+
+struct StringProtocol : public AbstractProtocol {
 public:
-  void test() {}
   std::string info;
 };
 
@@ -24,7 +24,7 @@ public:
     auto msg = std::make_shared<StringProtocol>();
     message.emplace_back(msg);
     in_buffer->ReadFromBuffer(msg->info, in_buffer->ReadAble());
-    msg->SetReqId("123");
+    msg->req_id_ = "123";
   }
 };
 } // namespace rocket

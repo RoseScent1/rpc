@@ -25,36 +25,36 @@ std::string formatString(const char *format, Args &&...args) {
 #define DEBUGLOG(str, ...)                                                     \
   if (rocket::Logger::GetGlobalLogger()->GetLogLevel() <=                      \
       rocket::LogLevel::Debug) {                                               \
-    std::string msg = (rocket::LogEvent(rocket::LogLevel::Debug)).ToString() + \
+    std::string log_msg = (rocket::LogEvent(rocket::LogLevel::Debug)).ToString() + \
                       "[" + std::string(__FILE__) + ":" +                      \
                       std::to_string(__LINE__) + "]\t" +                       \
                       rocket::formatString(str, ##__VA_ARGS__);                \
-    msg += "\n";                                                               \
-    rocket::Logger::GetGlobalLogger()->PushLog(msg);                           \
+    log_msg += "\n";                                                               \
+    rocket::Logger::GetGlobalLogger()->PushLog(log_msg);                           \
     rocket::Logger::GetGlobalLogger()->Log();                                  \
   }
 
 #define INFOLOG(str, ...)                                                      \
   if (rocket::Logger::GetGlobalLogger()->GetLogLevel() <=                      \
       rocket::LogLevel::Info) {                                                \
-    std::string msg = (rocket::LogEvent(rocket::LogLevel::Info)).ToString() +  \
+    std::string log_msg = (rocket::LogEvent(rocket::LogLevel::Info)).ToString() +  \
                       "[" + std::string(__FILE__) + ":" +                      \
                       std::to_string(__LINE__) + "]\t" +                       \
                       rocket::formatString(str, ##__VA_ARGS__);                \
-    msg += "\n";                                                               \
-    rocket::Logger::GetGlobalLogger()->PushLog(msg);                           \
+    log_msg += "\n";                                                               \
+    rocket::Logger::GetGlobalLogger()->PushLog(log_msg);                           \
     rocket::Logger::GetGlobalLogger()->Log();                                  \
   }
 
 #define ERRORLOG(str, ...)                                                     \
   if (rocket::Logger::GetGlobalLogger()->GetLogLevel() <=                      \
       rocket::LogLevel::Error) {                                               \
-    std::string msg = (rocket::LogEvent(rocket::LogLevel::Error)).ToString() + \
+    std::string log_msg = (rocket::LogEvent(rocket::LogLevel::Error)).ToString() + \
                       "[" + std::string(__FILE__) + ":" +                      \
                       std::to_string(__LINE__) + "]\t" +                       \
                       rocket::formatString(str, ##__VA_ARGS__);                \
-    msg += "\n";                                                               \
-    rocket::Logger::GetGlobalLogger()->PushLog(msg);                           \
+    log_msg += "\n";                                                               \
+    rocket::Logger::GetGlobalLogger()->PushLog(log_msg);                           \
     rocket::Logger::GetGlobalLogger()->Log();                                  \
   }
 

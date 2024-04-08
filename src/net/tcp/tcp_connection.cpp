@@ -5,8 +5,8 @@
 #include "fd_event.h"
 #include "fd_event_group.h"
 #include "log.h"
-#include "string_coder.h"
 #include "tcp_buffer.h"
+#include "tinypb_coder.h"
 #include <asm-generic/errno-base.h>
 #include <cerrno>
 #include <cstring>
@@ -23,7 +23,7 @@ TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
     : client_addr_(client_addr), event_loop_(event_loop), state_(NotConnected),
       connection_type(type) {
 
-  coder_ = std::make_shared<Stringcoder>();
+  coder_ = std::make_shared<TinyPBCoder>();
 
   in_buffer_ = std::make_shared<TcpBuffer>(buffer_size);
   out_buffer_ = std::make_shared<TcpBuffer>(buffer_size);
@@ -120,9 +120,9 @@ void TcpConnection::Execute() {
     std::vector<AbstractProtocol::s_ptr> result;
     coder_->Decode(result, in_buffer_);
     for (auto &i : result) {
-      auto it = read_done_.find(i->GetReqId());
+      auto it = read_done_.find(i->req_id_);
       if (it != read_done_.end()) {
-        INFOLOG("req id = %s", i->GetReqId().c_str());
+        INFOLOG("req id = %s", i->req_id_.c_str());
         it->second(i);
       }
     }

@@ -40,3 +40,8 @@ ThreadId
 
 ### eventloop
 事件模块
+
+// 协议解析
+// read write
+// 输入输出buffer
+// epoll模式
