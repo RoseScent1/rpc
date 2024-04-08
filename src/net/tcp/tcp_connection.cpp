@@ -5,8 +5,10 @@
 #include "fd_event.h"
 #include "fd_event_group.h"
 #include "log.h"
+#include "rpc_dispatcher.h"
 #include "tcp_buffer.h"
 #include "tinypb_coder.h"
+#include "tinypb_protocol.h"
 #include <asm-generic/errno-base.h>
 #include <cerrno>
 #include <cstring>
@@ -30,7 +32,7 @@ TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
   fd_event_ = FdEventGroup::GetFdEventGRoup()->GetFdEvent(fd);
   fd_event_->SetNonBlock();
   if (connection_type == TcpConnection::ConnectionType::Server) {
-
+    dispatcher_ = std::make_shared<RpcDispatcher>();
     listenRead();
   }
 }
@@ -106,18 +108,25 @@ void TcpConnection::Read() {
 }
 
 void TcpConnection::Execute() {
-  if (connection_type == ConnectionType::Server) {
-    // 将RPC请求执行业务逻辑, 获取RPC响应, 再把RPC响应发送回去
-    std::string buffer;
-    in_buffer_->ReadFromBuffer(buffer, in_buffer_->ReadAble());
+  std::vector<AbstractProtocol::s_ptr> result;
 
-    INFOLOG("sucess get request from client[%s],out buffer =%s",
-            client_addr_->ToString().c_str(), buffer.c_str());
-    out_buffer_->WriteToBuffer(buffer.c_str(), buffer.size());
+  if (connection_type == ConnectionType::Server) {
+    std::vector<AbstractProtocol::s_ptr> replay_message;
+    // 1. 针对每一个请求,调用rpc方法,获取返回message
+    // 2. 将返回message放入发送缓冲区,监听可写事件
+    coder_->Decode(result, in_buffer_);
+    for (auto &i : result) {
+      INFOLOG("success get request[%s] from client[%s]", i->req_id_.c_str(),
+              client_addr_->ToString().c_str());
+			auto message = std::make_shared<TinyPBProtocol>();
+			dispatcher_->Dispatch(i, message);
+
+			replay_message.emplace_back(message);
+    }
+		coder_->Decode(replay_message, out_buffer_);
     ListenWrite();
   } else {
     // 从buffer解码得到message对象
-    std::vector<AbstractProtocol::s_ptr> result;
     coder_->Decode(result, in_buffer_);
     for (auto &i : result) {
       auto it = read_done_.find(i->req_id_);

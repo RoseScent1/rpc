@@ -9,6 +9,7 @@ include_directories(
 				${PROJECT_SOURCE_DIR}/include/net
 				${PROJECT_SOURCE_DIR}/include/net/tcp
 				${PROJECT_SOURCE_DIR}/include/net/coder
+				${PROJECT_SOURCE_DIR}/include/net/rpc
 
 				)
 # set(LIBPATH ${PROJECT_SOURCE_DIR}/lib)

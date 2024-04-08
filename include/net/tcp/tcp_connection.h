@@ -5,6 +5,7 @@
 #include "event_loop.h"
 #include "fd_event.h"
 #include "net_addr.h"
+#include "rpc_dispatcher.h"
 #include "tcp_buffer.h"
 #include <map>
 #include <memory>
@@ -64,5 +65,7 @@ private:
   std::map<std::string, std::function<void(AbstractProtocol::s_ptr)>>
       read_done_;
   AbstractCoder::s_ptr coder_;
+
+	std::shared_ptr<RpcDispatcher> dispatcher_;
 };
 } // namespace rocket

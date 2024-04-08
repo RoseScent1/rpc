@@ -10,6 +10,7 @@ public:
   using s_ptr = std::shared_ptr<TinyPBProtocol>;
   static const char PB_START;
   static const char PB_END;
+  void SetErrInfo(int32_t err_code, const char *err_info);
 
 public:
   int32_t pk_len_{0};
