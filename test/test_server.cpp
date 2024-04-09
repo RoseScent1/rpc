@@ -11,7 +11,7 @@
 #include <vector>
 
 void test() {
-  std::string s("127.0.0.1:8086");
+  std::string s("172.18.10.174:8086");
   auto a = std::make_shared<rocket::IPNetAddr>(s);
   rocket::TcpServer tcp_server(a);
   tcp_server.start();

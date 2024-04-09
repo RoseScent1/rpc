@@ -28,6 +28,8 @@ public:
 	// 结束loop
 	void Stop();
 
+	int GetErrCode();
+	std::string GetErrInfo();
 private:
 	NetAddr::s_ptr ser_addr_;
 	EventLoop * event_loop_;
@@ -35,5 +37,7 @@ private:
 	int fd_;
 	FdEvent::s_ptr fd_event_;
 	TcpConnection::s_ptr connection_;
+	int connect_err_code_{0};
+	std::string err_info_;
 };
 }

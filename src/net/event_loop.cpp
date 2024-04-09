@@ -1,4 +1,5 @@
 #include "event_loop.h"
+#include "fd_event.h"
 #include "log.h"
 #include "timer.h"
 #include "timer_event.h"
@@ -44,7 +45,7 @@ EventLoop::EventLoop() : is_stop_(false) {
   InitTimer();
   AddEpollEvent(wakeup_fd_event_);
   INFOLOG("successful create wakeup event loop in thread %d", thread_id_);
-	// current_eventloop.reset(this);
+  // current_eventloop.reset(this);
 }
 
 EventLoop::~EventLoop() {
@@ -125,6 +126,20 @@ void EventLoop::Loop() {
         if (trigger_event.events & EPOLLOUT) {
           DEBUGLOG("fd[%d] trigger EPOLLOUT", fd_event->GetFd())
           AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
+        }
+        if (trigger_event.events & EPOLLERR) {
+          DeleteEpollEvent(fd_event);
+          DEBUGLOG("fd[%d] trigger EPOLLERR", fd_event->GetFd());
+          if (fd_event->Handler(FdEvent::ERR_EVENT) != nullptr) {
+            AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
+          }
+        }
+        if (trigger_event.events & EPOLLHUP) {
+          DeleteEpollEvent(fd_event);
+          DEBUGLOG("fd[%d] trigger EPOLLHUP", fd_event->GetFd());
+          if (fd_event->Handler(FdEvent::ERR_EVENT) != nullptr) {
+            AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
+          }
         }
       }
     }
@@ -215,9 +230,9 @@ void EventLoop::AddTask(std::function<void()> callback, bool wakeup) {
 }
 
 EventLoop *EventLoop::GetCurrentEventLoop() {
-  if (current_eventloop == nullptr)  {
-		current_eventloop.reset(new EventLoop());
-	}
-	return current_eventloop.get();
+  if (current_eventloop == nullptr) {
+    current_eventloop.reset(new EventLoop());
+  }
+  return current_eventloop.get();
 }
 } // namespace rocket

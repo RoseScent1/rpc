@@ -1,4 +1,5 @@
 #include "tcp_client.h"
+#include "error_code.h"
 #include "event_loop.h"
 #include "fd_event.h"
 #include "fd_event_group.h"
@@ -25,8 +26,9 @@ TcpClient::TcpClient(NetAddr::s_ptr ser_addr) : ser_addr_(ser_addr) {
       event_loop_, fd_, 128, ser_addr, TcpConnection::ConnectionType::Client);
   connection_->SetType(TcpConnection::ConnectionType::Client);
 }
+
 TcpClient::~TcpClient() {
-	// INFOLOG("~TcpClient");
+  // INFOLOG("~TcpClient");
   if (fd_ > 0) {
     close(fd_);
   }
@@ -45,32 +47,53 @@ void TcpClient::Connect(std::function<void()> done) {
     event_loop_->Loop();
   } else if (rt == -1) {
     if (errno == EINPROGRESS) {
+			// 错误事件是epoll默认监听的,这里只是提供了出错时执行的回调函数
+			// 当服务端未启用监听时就可能导致客户端触发错误事件,返回值EPOLLERR 或者EPOLLHUP
+      fd_event_->Listen(FdEvent::ERR_EVENT, [this]() {
+        if (errno == ECONNREFUSED) {
+          connect_err_code_ = ERROR_FAILED_CONNECT;
+          err_info_ =
+              "connect error, sys_error = " + std::string(strerror(errno));
+        } else {
+          connect_err_code_ = ERROR_FAILED_CONNECT;
+          err_info_ =
+              "connect error sys_error = " + std::string(strerror(errno));
+        }
+        ERRORLOG("connect unknow error,errno = %d, error = %s", errno,
+                 strerror(errno));
+      });
+
       // epoll监听可写事件,判断错误码
       fd_event_->Listen(FdEvent::OUT_EVENT, [this, done]() {
-        bool is_connect{false};
         int error = 0;
         socklen_t len = sizeof(error);
         getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &len);
         if (error == 0) {
           INFOLOG("connect addr[%s] success", ser_addr_->ToString().c_str());
-          is_connect = true;
-        } else {
-          ERRORLOG("connect error,errno = %d, error = %s", errno,
-                   strerror(errno));
-        }
-        fd_event_->Cancel(FdEvent::OUT_EVENT);
-        event_loop_->AddEpollEvent(fd_event_.get());
-
-        // 连接成功才会执行
-        if (is_connect && done) {
           connection_->Setstate(TcpConnection::Connected);
+        } else {
+          ERRORLOG("connect error, errno = %d, error = %s", errno,
+                   strerror(errno));
+          connect_err_code_ = ERROR_FAILED_CONNECT;
+          err_info_ =
+              "connect error, sys_error = " + std::string(strerror(errno));
+        }
+        event_loop_->DeleteEpollEvent(fd_event_.get());
+
+        if (done) {
           done();
         }
       });
       event_loop_->AddEpollEvent(fd_event_.get());
       event_loop_->Loop();
     } else {
-      ERRORLOG("connect error,errno = %d, error = %s", errno, strerror(errno));
+      connect_err_code_ = ERROR_FAILED_CONNECT;
+      err_info_ = "connect error sys_error = " + std::string(strerror(errno));
+      ERRORLOG("connect error,errno = %d, error info = %s", errno,
+               strerror(errno));
+      if (done) {
+        done();
+      }
     }
   }
 }
@@ -88,18 +111,17 @@ void TcpClient::WriteMessage(
 
 // 异步读取message
 // 读取message成功调用done,入参就是message对象
-void TcpClient::ReadMessage(
-    const std::string &msg_id, std::function<void(AbstractProtocol::s_ptr)>
-        done) {
+void TcpClient::ReadMessage(const std::string &msg_id,
+                            std::function<void(AbstractProtocol::s_ptr)> done) {
 
   // 1. 监听可写
   // 2. 从buffer里decode对象,判断msg_id是否相等，相等则读成功，执行回调函数
-	connection_->PushReadMessage(msg_id, done);
-	connection_->listenRead();
+  connection_->PushReadMessage(msg_id, done);
+  connection_->listenRead();
 }
 
+void TcpClient::Stop() { event_loop_->Stop(); }
 
-void TcpClient::Stop() {
-	event_loop_->Stop();
-}
+int TcpClient::GetErrCode() { return connect_err_code_; }
+std::string TcpClient::GetErrInfo() { return err_info_; }
 } // namespace rocket

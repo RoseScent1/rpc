@@ -19,7 +19,6 @@ public:
     NotConnected = 1,
     Connected = 2,
     HalfClosing = 3,
-    Closed = 4
   };
 
   TcpConnection(EventLoop *event_loop, int fd, int buffer_size,

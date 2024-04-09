@@ -51,17 +51,23 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
   // TcpClient
 
   client_->Connect([req_protocol, this]() {
-    client_->WriteMessage(req_protocol, [req_protocol,
+    auto my_controller = dynamic_cast<RpcController *>(GetController());
+    if (client_->GetErrCode() != 0) {
+      my_controller->SetError(client_->GetErrCode(), client_->GetErrInfo());
+      ERRORLOG("msg-id = %s, connect error,error info[%s]",
+               req_protocol->msg_id_.c_str(),
+               my_controller->GetErrorInfo().c_str());
+      return;
+    }
+    client_->WriteMessage(req_protocol, [my_controller, req_protocol,
                                          this](rocket::AbstractProtocol::s_ptr
                                                    msg_ptr) {
       INFOLOG("write success msg_id = [%s]", req_protocol->msg_id_.c_str());
       client_->ReadMessage(
           req_protocol->msg_id_,
-          [this](rocket::AbstractProtocol::s_ptr msg_ptr) {
+          [my_controller, this](rocket::AbstractProtocol::s_ptr msg_ptr) {
             auto rsp_protocol =
                 std::dynamic_pointer_cast<rocket::TinyPBProtocol>(msg_ptr);
-
-            auto my_controller = dynamic_cast<RpcController *>(GetController());
             if (my_controller == nullptr) {
               ERRORLOG("failed CallMethod RpcController convert error");
               return;

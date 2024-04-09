@@ -1,4 +1,4 @@
-#pragma  once
+#pragma once
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -10,8 +10,12 @@ namespace rocket {
 
 class FdEvent {
 public:
-  enum TriggerEvent { IN_EVENT = EPOLLIN, OUT_EVENT = EPOLLOUT };
-	using s_ptr = std::shared_ptr<FdEvent>;
+  enum TriggerEvent {
+    IN_EVENT = EPOLLIN,
+    OUT_EVENT = EPOLLOUT,
+    ERR_EVENT = EPOLLERR
+  };
+  using s_ptr = std::shared_ptr<FdEvent>;
 
   FdEvent(int fd);
   FdEvent();
@@ -19,10 +23,10 @@ public:
   std::function<void()> Handler(TriggerEvent event_type);
   void Listen(TriggerEvent event_type, std::function<void()> callback);
 
-	void Cancel(TriggerEvent event_type);
+  void Cancel(TriggerEvent event_type);
 
-	void SetNonBlock();
-	
+  void SetNonBlock();
+
   int GetFd() const { return fd_; }
   epoll_event GetEpollEvent() { return listen_event_; }
 
@@ -31,6 +35,7 @@ protected:
   epoll_event listen_event_;
   std::function<void()> read_callback_;
   std::function<void()> write_callback_;
+  std::function<void()> err_callback_;
 };
 
 class WakeUpFdEvent : public FdEvent {

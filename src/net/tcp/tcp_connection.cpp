@@ -204,17 +204,17 @@ void TcpConnection::Write() {
 
 void TcpConnection::Clear() {
   // 服务器处理关闭连接后的清理动作
-  if (state_ == Closed) {
+  if (state_ == NotConnected) {
     return;
   }
   fd_event_->Cancel(FdEvent::IN_EVENT);
   fd_event_->Cancel(FdEvent::OUT_EVENT);
   event_loop_->DeleteEpollEvent(fd_event_.get());
-  state_ = Closed;
+  state_ = NotConnected;
 }
 
 void TcpConnection::ShutDown() {
-  if (state_ == Closed || state_ == NotConnected) {
+  if ( state_ == NotConnected) {
     return;
   }
   state_ = HalfClosing;

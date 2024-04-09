@@ -28,7 +28,7 @@
 #include "util.h"
 
 void test_client() {
-  std::string s("127.0.0.1:8086");
+  std::string s("172.18.10.174:8086");
   auto a = std::make_shared<rocket::IPNetAddr>(s);
   rocket::TcpClient client(a);
   client.Connect([&client, a]() {
@@ -65,7 +65,7 @@ void test_client() {
 
 void test_channel() {
   rocket::IPNetAddr::s_ptr addr =
-      std::make_shared<rocket::IPNetAddr>("127.0.0.1", 8086);
+      std::make_shared<rocket::IPNetAddr>("172.18.10.174", 8086);
   auto channel = std::make_shared<rocket::RpcChannel>(addr);
   auto request = std::make_shared<makeOrderRequest>();
   request->set_price(1);
@@ -88,6 +88,9 @@ void test_channel() {
   Order_Stub stub(channel.get());
   stub.makeOrder(controller.get(), request.get(), response.get(),
                  closure.get());
+	if (controller->Failed() != 0) {
+		ERRORLOG("makeOrder error, error code = %d, error info = %s",controller->GetErrorCode(),controller->GetErrorInfo().c_str());
+	}
   INFOLOG("channel s_ptr use count = %d", channel.use_count());
 }
 int main() {
