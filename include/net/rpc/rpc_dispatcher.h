@@ -7,6 +7,7 @@
 namespace rocket {
 class RpcDispatcher {
 public:
+	static RpcDispatcher* GetRpcDispatcher();
   void Dispatch(AbstractProtocol::s_ptr request,
                 AbstractProtocol::s_ptr response);
 

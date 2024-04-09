@@ -9,9 +9,12 @@
 #include "tcp_buffer.h"
 #include "tinypb_coder.h"
 #include "tinypb_protocol.h"
+#include "util.h"
 #include <asm-generic/errno-base.h>
 #include <cerrno>
 #include <cstring>
+#include <fcntl.h>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <sys/socket.h>
@@ -114,16 +117,20 @@ void TcpConnection::Execute() {
     std::vector<AbstractProtocol::s_ptr> replay_message;
     // 1. 针对每一个请求,调用rpc方法,获取返回message
     // 2. 将返回message放入发送缓冲区,监听可写事件
+
     coder_->Decode(result, in_buffer_);
+
     for (auto &i : result) {
       INFOLOG("success get request[%s] from client[%s]", i->req_id_.c_str(),
               client_addr_->ToString().c_str());
-			auto message = std::make_shared<TinyPBProtocol>();
-			dispatcher_->Dispatch(i, message);
+      auto message = std::make_shared<TinyPBProtocol>();
 
-			replay_message.emplace_back(message);
+			// TODO:有问题
+      RpcDispatcher::GetRpcDispatcher()->Dispatch(i, message);
+
+      replay_message.emplace_back(message);
     }
-		coder_->Decode(replay_message, out_buffer_);
+    coder_->EnCode(replay_message, out_buffer_);
     ListenWrite();
   } else {
     // 从buffer解码得到message对象

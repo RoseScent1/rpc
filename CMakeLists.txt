@@ -3,6 +3,7 @@ project(tinyrpc)
 
 set(CMAKE_CXX_STANDARD 17)
 set(EXEPATH ${PROJECT_SOURCE_DIR}/bin)
+set(LIBPATH ${PROJECT_SOURCE_DIR}/lib)
 add_compile_options(-std=c++17  -Wall)
 include_directories(
 				${PROJECT_SOURCE_DIR}/include/common
@@ -12,7 +13,7 @@ include_directories(
 				${PROJECT_SOURCE_DIR}/include/net/rpc
 
 				)
-# set(LIBPATH ${PROJECT_SOURCE_DIR}/lib)
 
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(test_rpc)

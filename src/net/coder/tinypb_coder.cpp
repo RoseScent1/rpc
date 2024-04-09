@@ -5,13 +5,13 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <memory>
 #include <netinet/in.h>
 #include <string>
 
 namespace rocket {
 
-std::string test1, test2;
 void TinyPBCoder::EnCode(std::vector<AbstractProtocol::s_ptr> &message,
                          TcpBuffer::s_ptr &out_buffer) {
   for (auto &i : message) {
@@ -21,7 +21,6 @@ void TinyPBCoder::EnCode(std::vector<AbstractProtocol::s_ptr> &message,
     const char *buffer = encodeTinyPB(msg, len);
     if (buffer != nullptr && len != 0) {
       out_buffer->WriteToBuffer(buffer, len);
-      test1 = out_buffer->buffer_;
     }
 
     if (buffer) {
@@ -32,12 +31,11 @@ void TinyPBCoder::EnCode(std::vector<AbstractProtocol::s_ptr> &message,
 void TinyPBCoder::Decode(std::vector<AbstractProtocol::s_ptr> &out_message,
                          TcpBuffer::s_ptr &out_buffer) {
 
-  test2 = out_buffer->buffer_;
   // 遍历out_buffer,找到PB_start,找到包长度
   while (out_buffer->ReadIndex() < out_buffer->WriteIndex()) {
     // 遍历 out_buffer，找到 s_start
     // 解析整包长度，然后找到 s_end;
-    std::string &tmp = out_buffer->buffer_;
+    std::string tmp = out_buffer->buffer_;
     int start_index = out_buffer->ReadIndex();
     int end_index{-1};
 
@@ -49,13 +47,13 @@ void TinyPBCoder::Decode(std::vector<AbstractProtocol::s_ptr> &out_message,
       // 如果是开始的字节序
       if (tmp[i] == TinyPBProtocol::PB_START) {
         // 进行转换
-        if (i + 1 < out_buffer->WriteAble()) {
+        if (i + 1 < out_buffer->WriteIndex()) {
           pk_len = getInt32FromNetByte(&tmp[i + 1]);
           DEBUGLOG("parse success, pk_len = %d", pk_len);
 
           // 结束符的索引
           int j = i + pk_len - 1;
-          if (j >= out_buffer->WriteAble()) {
+          if (j >= out_buffer->WriteIndex()) {
             continue;
           }
           // 如果是结束符，说明有可能解析成功了
@@ -69,12 +67,13 @@ void TinyPBCoder::Decode(std::vector<AbstractProtocol::s_ptr> &out_message,
       }
     }
 
-    if (i >= out_buffer->WriteAble()) {
+    if (i >= out_buffer->WriteIndex()) {
       DEBUGLOG("decode end, read all out_buffer data");
       return;
     }
 
     if (parse_success) {
+
       out_buffer->ModifyReadIndex(end_index - start_index + 1);
       auto message = std::make_shared<TinyPBProtocol>();
       message->pk_len_ = pk_len;
@@ -88,8 +87,7 @@ void TinyPBCoder::Decode(std::vector<AbstractProtocol::s_ptr> &out_message,
         continue;
       }
       message->req_id_len_ = getInt32FromNetByte(&tmp[req_id_len_index]);
-
-      DEBUGLOG("parse msg_id_len=%d", message->req_id_len_);
+      DEBUGLOG("parse req_id_len=%d", message->req_id_len_);
 
       int req_id_index = req_id_len_index + sizeof(message->req_id_len_);
 
@@ -107,7 +105,6 @@ void TinyPBCoder::Decode(std::vector<AbstractProtocol::s_ptr> &out_message,
       }
       message->method_name_len_ =
           getInt32FromNetByte(&tmp[method_name_len_index]);
-
 
       int method_name_index =
           method_name_len_index + sizeof(message->method_name_len_);
