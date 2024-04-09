@@ -26,6 +26,7 @@ TcpClient::TcpClient(NetAddr::s_ptr ser_addr) : ser_addr_(ser_addr) {
   connection_->SetType(TcpConnection::ConnectionType::Client);
 }
 TcpClient::~TcpClient() {
+	// INFOLOG("~TcpClient");
   if (fd_ > 0) {
     close(fd_);
   }
@@ -88,13 +89,17 @@ void TcpClient::WriteMessage(
 // 异步读取message
 // 读取message成功调用done,入参就是message对象
 void TcpClient::ReadMessage(
-    const std::string &req_id, std::function<void(AbstractProtocol::s_ptr)>
+    const std::string &msg_id, std::function<void(AbstractProtocol::s_ptr)>
         done) {
 
   // 1. 监听可写
-  // 2. 从buffer里decode对象,判断req_id是否相等，相等则读成功，执行回调函数
-	connection_->PushReadMessage(req_id, done);
+  // 2. 从buffer里decode对象,判断msg_id是否相等，相等则读成功，执行回调函数
+	connection_->PushReadMessage(msg_id, done);
 	connection_->listenRead();
 }
 
+
+void TcpClient::Stop() {
+	event_loop_->Stop();
+}
 } // namespace rocket

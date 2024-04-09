@@ -3,11 +3,13 @@
 #include <cstring>
 
 namespace rocket {
-TcpBuffer::TcpBuffer(int size)  :read_index_(0), write_index_(0),size_(size) {
+TcpBuffer::TcpBuffer(int size) : read_index_(0), write_index_(0), size_(size) {
   buffer_.resize(size);
 }
 
-TcpBuffer::~TcpBuffer() {}
+TcpBuffer::~TcpBuffer() {
+  // INFOLOG("~TcpBuffer");
+}
 
 int TcpBuffer::ReadAble() { return write_index_ - read_index_; }
 

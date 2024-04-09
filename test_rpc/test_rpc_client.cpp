@@ -11,16 +11,21 @@
 #include <iostream>
 #include <memory>
 #include <netinet/in.h>
+#include <string>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include "net_addr.h"
 #include "order.pb.h"
+#include "rpc_channel.h"
+#include "rpc_closure.h"
+#include "rpc_controller.h"
 #include "rpc_dispatcher.h"
 #include "tcp_client.h"
 #include "tcp_server.h"
 #include "tinypb_protocol.h"
+#include "util.h"
 
 void test_client() {
   std::string s("127.0.0.1:8086");
@@ -30,7 +35,7 @@ void test_client() {
     INFOLOG("client connect to server[%s]", a->ToString().c_str());
     auto message = std::make_shared<rocket::TinyPBProtocol>();
 
-    message->req_id_ = "999";
+    message->msg_id_ = "999";
 
     makeOrderRequest request;
     request.set_price(100);
@@ -46,22 +51,7 @@ void test_client() {
     client.ReadMessage("999", [](rocket::AbstractProtocol::s_ptr msg_ptr) {
       auto message = std::dynamic_pointer_cast<rocket::TinyPBProtocol>(msg_ptr);
       DEBUGLOG("read req_ie = [%s] get response success,pb_data = %s",
-               msg_ptr->req_id_.c_str(), message->pb_data_.c_str());
-      makeOrderResponse response;
-      if (!response.ParseFromString(message->pb_data_)) {
-        ERRORLOG("client deserializer error")
-        return;
-      }
-      DEBUGLOG("get response success, response[%s]",
-               response.ShortDebugString().c_str());
-    });
-    client.WriteMessage(message, [](rocket::AbstractProtocol::s_ptr msg_ptr) {
-      DEBUGLOG("write message success");
-    });
-    client.ReadMessage("999", [](rocket::AbstractProtocol::s_ptr msg_ptr) {
-      auto message = std::dynamic_pointer_cast<rocket::TinyPBProtocol>(msg_ptr);
-      DEBUGLOG("read req_ie = [%s] get response success,pb_data = %s",
-               msg_ptr->req_id_.c_str(), message->pb_data_.c_str());
+               msg_ptr->msg_id_.c_str(), message->pb_data_.c_str());
       makeOrderResponse response;
       if (!response.ParseFromString(message->pb_data_)) {
         ERRORLOG("client deserializer error")
@@ -72,10 +62,37 @@ void test_client() {
     });
   });
 }
+
+void test_channel() {
+  rocket::IPNetAddr::s_ptr addr =
+      std::make_shared<rocket::IPNetAddr>("127.0.0.1", 8086);
+  auto channel = std::make_shared<rocket::RpcChannel>(addr);
+  auto request = std::make_shared<makeOrderRequest>();
+  request->set_price(1);
+  request->set_goods("ysl");
+
+  auto controller = std::make_shared<rocket::RpcController>();
+
+  auto response = std::make_shared<makeOrderResponse>();
+	
+  auto closure =
+      std::make_shared<rocket::RpcClosure>([&channel, request, response]() {
+        INFOLOG("closure callback run\n request:%s ,response:%s",
+                request->ShortDebugString().c_str(),
+                response->ShortDebugString().c_str());
+        INFOLOG("new stop event loop");
+        channel->GetClient()->Stop();
+      });
+  channel->Init(controller, request, response, closure);
+
+  Order_Stub stub(channel.get());
+  stub.makeOrder(controller.get(), request.get(), response.get(),
+                 closure.get());
+  INFOLOG("channel s_ptr use count = %d", channel.use_count());
+}
 int main() {
   rocket::Config::SetGlobalConfig("/home/cwl/Desktop/rpc/conf/rocket.xml");
   rocket::Logger::InitGlobalLogger();
-
-  test_client();
+  test_channel();
   return 0;
 }

@@ -5,9 +5,11 @@
 #include "fd_event.h"
 #include "net_addr.h"
 #include "tcp_connection.h"
+#include <memory>
 namespace rocket {
 class TcpClient {
 public:
+	using s_ptr = std::shared_ptr<TcpClient>;
 	TcpClient(NetAddr::s_ptr ser_addr);
 	~TcpClient();
 
@@ -21,10 +23,10 @@ public:
 
 	// 异步读取message
 	// 读取message成功调用done,入参就是message对象
-	void ReadMessage(const std::string &req_id,std::function<void(AbstractProtocol::s_ptr)> done );
+	void ReadMessage(const std::string &msg_id,std::function<void(AbstractProtocol::s_ptr)> done );
 
-
-
+	// 结束loop
+	void Stop();
 
 private:
 	NetAddr::s_ptr ser_addr_;

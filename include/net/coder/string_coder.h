@@ -24,7 +24,7 @@ public:
     auto msg = std::make_shared<StringProtocol>();
     message.emplace_back(msg);
     in_buffer->ReadFromBuffer(msg->info, in_buffer->ReadAble());
-    msg->req_id_ = "123";
+    msg->msg_id_ = "123";
   }
 };
 } // namespace rocket

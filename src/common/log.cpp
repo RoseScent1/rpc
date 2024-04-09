@@ -4,18 +4,19 @@
 #include <bits/types/struct_timeval.h>
 #include <cstddef>
 #include <ctime>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <sys/time.h>
 
 namespace rocket {
-static Logger *g_logger = nullptr;
+static std::unique_ptr<Logger> g_logger = nullptr;
 
-Logger *Logger::GetGlobalLogger() { return g_logger; }
+Logger *Logger::GetGlobalLogger() { return g_logger.get(); }
 void Logger::InitGlobalLogger() {
-  g_logger =
-      new Logger(StringToLogLevel(Config::GetGlobalConfig()->log_level_));
+  g_logger.reset(
+      new Logger(StringToLogLevel(Config::GetGlobalConfig()->log_level_)));
 }
 void Logger::PushLog(const std::string &msg) {
   std::unique_lock<std::mutex> lock(latch_);
@@ -24,9 +25,9 @@ void Logger::PushLog(const std::string &msg) {
 
 void Logger::Log() {
   std::unique_lock<std::mutex> lock(latch_);
-	std::queue<std::string> tmp;
-	tmp.swap(buffer_);
-	lock.unlock();
+  std::queue<std::string> tmp;
+  tmp.swap(buffer_);
+  lock.unlock();
   while (!tmp.empty()) {
     std::cout << tmp.front();
     tmp.pop();

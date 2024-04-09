@@ -1,17 +1,20 @@
-#include "fd_event.h"
 #include "fd_event_group.h"
+#include "fd_event.h"
+#include "log.h"
 #include <memory>
 #include <mutex>
 
 namespace rocket {
-static FdEventGroup *g_fd_event_group = nullptr;
+static std::unique_ptr<FdEventGroup> g_fd_event_group = nullptr;
 
 FdEventGroup::FdEventGroup(int size) : size_(size) {
   for (int i = 0; i < size; ++i) {
     fd_event_group_.emplace_back(new FdEvent(i));
   }
 }
-FdEventGroup::~FdEventGroup() {}
+FdEventGroup::~FdEventGroup() {
+  // INFOLOG("~FdEventGroup");
+}
 
 std::shared_ptr<FdEvent> FdEventGroup::GetFdEvent(int fd) {
   std::unique_lock<std::mutex> lock(latch_);
@@ -23,11 +26,13 @@ std::shared_ptr<FdEvent> FdEventGroup::GetFdEvent(int fd) {
     fd_event_group_.emplace_back(new FdEvent(i));
   }
   size_ = new_size;
-	return fd_event_group_[fd];
+  return fd_event_group_[fd];
 }
 
 FdEventGroup *FdEventGroup::GetFdEventGRoup() {
-  return g_fd_event_group ? g_fd_event_group
-                          : g_fd_event_group = new FdEventGroup(128);
+  if (g_fd_event_group == nullptr) {
+    g_fd_event_group.reset(new FdEventGroup(128));
+  }
+  return g_fd_event_group.get();
 }
 } // namespace rocket

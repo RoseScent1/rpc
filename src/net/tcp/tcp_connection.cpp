@@ -39,7 +39,9 @@ TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
     listenRead();
   }
 }
-TcpConnection::~TcpConnection() { DEBUGLOG("Tcpconnection destory"); }
+TcpConnection::~TcpConnection() { 
+	// INFOLOG("~TcpConnection "); 
+}
 
 void TcpConnection::Setstate(const TcpState state) { state_ = state; }
 
@@ -121,7 +123,7 @@ void TcpConnection::Execute() {
     coder_->Decode(result, in_buffer_);
 
     for (auto &i : result) {
-      INFOLOG("success get request[%s] from client[%s]", i->req_id_.c_str(),
+      INFOLOG("success get request[%s] from client[%s]", i->msg_id_.c_str(),
               client_addr_->ToString().c_str());
       auto message = std::make_shared<TinyPBProtocol>();
 
@@ -136,9 +138,9 @@ void TcpConnection::Execute() {
     // 从buffer解码得到message对象
     coder_->Decode(result, in_buffer_);
     for (auto &i : result) {
-      auto it = read_done_.find(i->req_id_);
+      auto it = read_done_.find(i->msg_id_);
       if (it != read_done_.end()) {
-        INFOLOG("req id = %s", i->req_id_.c_str());
+        INFOLOG("req id = %s", i->msg_id_.c_str());
         it->second(i);
       }
     }
@@ -235,9 +237,9 @@ void TcpConnection::PushWriteMessage(
 }
 
 void TcpConnection::PushReadMessage(
-    const std::string &req_id,
+    const std::string &msg_id,
     std::function<void(AbstractProtocol::s_ptr)> &func) {
-  read_done_.insert({req_id, func});
+  read_done_.insert({msg_id, func});
 }
 
 } // namespace rocket

@@ -41,7 +41,7 @@ public:
 
   void PushWriteMessage(AbstractProtocol::s_ptr &arg,
                         std::function<void(AbstractProtocol::s_ptr)> &func);
-  void PushReadMessage(const std::string &req_id,
+  void PushReadMessage(const std::string &msg_id,
                    std::function<void(AbstractProtocol::s_ptr)> &func);
 
 private:
@@ -61,7 +61,7 @@ private:
                         std::function<void(AbstractProtocol::s_ptr)>>>
       write_done_;
 
-  // key req_id
+  // key msg_id
   std::map<std::string, std::function<void(AbstractProtocol::s_ptr)>>
       read_done_;
   AbstractCoder::s_ptr coder_;

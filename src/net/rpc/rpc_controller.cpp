@@ -1,12 +1,15 @@
 #include "rpc_controller.h"
+#include "log.h"
 #include <google/protobuf/stubs/callback.h>
 
 namespace rocket {
-
+RpcController::~RpcController() {
+	// INFOLOG("~RpcController");
+}
 void RpcController::Reset() {
   error_code_ = 0;
   error_info_.clear();
-  req_id_.clear();
+  msg_id_.clear();
 
   is_failed_ = false;
   is_canceled_ = false;
@@ -33,15 +36,16 @@ void RpcController::NotifyOnCancel(google::protobuf::Closure *callback) {}
 void RpcController::SetError(int32_t error_code, const std::string error_info) {
   error_code_ = error_code;
   error_info_ = error_info;
+	is_failed_ = true;
 }
 
 int32_t RpcController::GetErrorCode() { return error_code_; }
 
 std::string RpcController::GetErrorInfo() { return error_info_; }
 
-void RpcController::SetReqId(const std::string id) { req_id_ = id; }
+void RpcController::SetMsgId(const std::string id) { msg_id_ = id; }
 
-std::string RpcController::GetReqId() { return req_id_; }
+std::string RpcController::GetMsgId() { return msg_id_; }
 
 
 

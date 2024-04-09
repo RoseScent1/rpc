@@ -5,11 +5,11 @@
 #include <tinyxml/tinyxml.h>
 namespace rocket {
 
-static Config *g_config = nullptr;
-Config *Config::GetGlobalConfig() { return g_config; }
+static  std::unique_ptr<Config> g_config = nullptr ;
+Config *Config::GetGlobalConfig() { return g_config.get(); }
 
 void Config::SetGlobalConfig(const char *xmlfile) {
-  g_config = new Config(xmlfile);
+  g_config .reset(new Config(xmlfile));
 }
 Config::Config(const char *xmlfile) {
   auto xml_document = std::make_shared<TiXmlDocument>();

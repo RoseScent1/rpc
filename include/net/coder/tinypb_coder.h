@@ -9,6 +9,7 @@ public:
                       TcpBuffer::s_ptr &out_buffer) ;
   virtual void Decode(std::vector<AbstractProtocol::s_ptr> &message,
                       TcpBuffer::s_ptr &out_buffer);
+	~TinyPBCoder();
 private:
 	const char* encodeTinyPB(TinyPBProtocol::s_ptr message, int &len);
 };

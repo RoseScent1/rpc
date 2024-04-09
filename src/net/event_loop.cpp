@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iterator>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <sys/epoll.h>
@@ -20,8 +21,7 @@ namespace rocket {
 
 static int epoll_max_timeout = 10000;
 static int epoll_max_events = 10;
-static thread_local EventLoop *current_eventloop = nullptr;
-
+static thread_local std::unique_ptr<EventLoop> current_eventloop = nullptr;
 // Eventloop
 EventLoop::EventLoop() : is_stop_(false) {
   // 每个线程只能创建一个eventloop
@@ -44,7 +44,7 @@ EventLoop::EventLoop() : is_stop_(false) {
   InitTimer();
   AddEpollEvent(wakeup_fd_event_);
   INFOLOG("successful create wakeup event loop in thread %d", thread_id_);
-  current_eventloop = this;
+	// current_eventloop.reset(this);
 }
 
 EventLoop::~EventLoop() {
@@ -58,6 +58,7 @@ EventLoop::~EventLoop() {
     delete timer_;
     timer_ = nullptr;
   }
+  // INFOLOG("~EventLoop");
 }
 
 void EventLoop::InitTimer() {
@@ -97,9 +98,9 @@ void EventLoop::Loop() {
       task_queue.front()();
       task_queue.pop();
     }
-		if (is_loop_) {
-			return ;
-		}
+    if (is_loop_) {
+      return;
+    }
     int timeout = epoll_max_timeout;
     epoll_event result_events[epoll_max_events];
     for (int i = 0; i < epoll_max_events; ++i) {
@@ -128,7 +129,7 @@ void EventLoop::Loop() {
       }
     }
   }
-	is_loop_ = true;
+  is_loop_ = true;
 }
 
 void EventLoop::WakeUp() {
@@ -214,7 +215,9 @@ void EventLoop::AddTask(std::function<void()> callback, bool wakeup) {
 }
 
 EventLoop *EventLoop::GetCurrentEventLoop() {
-  return current_eventloop ? current_eventloop
-                           : current_eventloop = new EventLoop();
+  if (current_eventloop == nullptr)  {
+		current_eventloop.reset(new EventLoop());
+	}
+	return current_eventloop.get();
 }
 } // namespace rocket

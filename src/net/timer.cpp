@@ -24,7 +24,10 @@ Timer::Timer() {
   Listen(FdEvent::IN_EVENT, std::bind(&Timer::OnTimer, this));
 }
 
-Timer::~Timer() {}
+Timer::~Timer() {
+
+  // INFOLOG("~Timer");
+}
 
 void Timer::ResetArriveTime() {
   std::unique_lock<std::mutex> lock(latch_);

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <netinet/in.h>
+#include <string>
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -20,8 +21,11 @@ int64_t getNowMs() {
 }
 
 int32_t getInt32FromNetByte(const char *buf) {
-	int32_t res ;
-	memcpy(&res, buf, sizeof(res));
-	return ntohl(res);
+  int32_t res;
+  memcpy(&res, buf, sizeof(res));
+  return ntohl(res);
 }
+
+static thread_local uint64_t msg_id = 0;
+std::string GenMsgId() { return std::to_string(msg_id++); }
 } // namespace rocket

@@ -31,7 +31,7 @@ public:
       response->set_res_info("not enough money");
       return;
     }
-		
+		INFOLOG("request price = %d, goods = %s",request->price(),request->goods().c_str());
     response->set_order_id("123456");
   }
 };

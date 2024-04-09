@@ -21,7 +21,7 @@ IOThread::IOThread() {
 }
 
 IOThread::~IOThread() {
-  INFOLOG("IOThread deleted threadid = %d", thread_id_);
+  // INFOLOG("IOThread deleted threadid = %d", thread_id_);
   event_loop_->Stop();
   sem_destroy(&sem_init_);
   sem_destroy(&sem_start_);

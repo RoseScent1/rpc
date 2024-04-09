@@ -42,13 +42,13 @@ void test_client() {
     INFOLOG("client connect to server[%s]", a->ToString().c_str());
     auto message = std::make_shared<rocket::TinyPBProtocol>();
     message->pb_data_ = ("test pb data");
-    message->req_id_ = "123";
+    message->msg_id_ = "123";
     client.WriteMessage(message, [](rocket::AbstractProtocol::s_ptr msg_ptr) {
       DEBUGLOG("write message sucess111");
     });
     client.ReadMessage("123", [](rocket::AbstractProtocol::s_ptr msg_ptr) {
       auto message = std::dynamic_pointer_cast<rocket::TinyPBProtocol>(msg_ptr);
-      DEBUGLOG("read req_ie = [%s] message sucess,pb_data = %s", msg_ptr->req_id_.c_str(),message->pb_data_.c_str());
+      DEBUGLOG("read req_ie = [%s] message sucess,pb_data = %s", msg_ptr->msg_id_.c_str(),message->pb_data_.c_str());
     });
   });
 }

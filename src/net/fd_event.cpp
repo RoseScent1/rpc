@@ -23,7 +23,9 @@ FdEvent::FdEvent(int fd) : fd_(fd) {
   memset(&listen_event_, 0, sizeof(listen_event_));
 }
 FdEvent::FdEvent() { memset(&listen_event_, 0, sizeof(listen_event_)); }
-FdEvent::~FdEvent() {}
+FdEvent::~FdEvent() {
+  // INFOLOG("~FdEvent");
+}
 std::function<void()> FdEvent::Handler(TriggerEvent event_type) {
   if (event_type == TriggerEvent::IN_EVENT) {
     return read_callback_;
@@ -47,13 +49,15 @@ void FdEvent::Cancel(TriggerEvent event_type) {
     listen_event_.events &= ~EPOLLIN;
   } else {
     listen_event_.events &= ~EPOLLOUT;
-	}
+  }
 }
 
 // WakeUpFdEvent
 WakeUpFdEvent::WakeUpFdEvent(int fd) : FdEvent(fd) {}
 
-WakeUpFdEvent::~WakeUpFdEvent(){};
+WakeUpFdEvent::~WakeUpFdEvent(){
+    // INFOLOG("~WakeUpFdEvent");
+};
 
 void WakeUpFdEvent::WakeUp() {
   char buff[8] = "a";

@@ -33,6 +33,11 @@ IPNetAddr::IPNetAddr(const sockaddr_in &addr) : addr_(addr) {
   port_ = ntohs(addr.sin_port);
 }
 
+
+IPNetAddr::~IPNetAddr(){
+	// INFOLOG("~IPNetAddr");
+}
+
 sockaddr *IPNetAddr::GetSockAddr() {
   return reinterpret_cast<sockaddr *>(&addr_);
 }

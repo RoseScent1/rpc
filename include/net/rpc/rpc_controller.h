@@ -10,7 +10,7 @@ public:
   using s_ptr = std::shared_ptr<RpcController>;
 
   RpcController() = default;
-  ~RpcController() = default;
+  ~RpcController() ;
 
   void Reset() override;
 
@@ -29,8 +29,8 @@ public:
   void SetError(int32_t error_code, const std::string error_info);
   int32_t GetErrorCode();
   std::string GetErrorInfo();
-  void SetReqId(const std::string id);
-  std::string GetReqId();
+  void SetMsgId(const std::string id);
+  std::string GetMsgId();
   // void SetLocalAddr(NetAddr::s_ptr addr);
   // void SetPeerAddr(NetAddr::s_ptr addr);
   // NetAddr::s_ptr GetLocalAddr();
@@ -42,7 +42,7 @@ public:
 private:
   int error_code_{0};
   std::string error_info_;
-  std::string req_id_;
+  std::string msg_id_;
 
   bool is_failed_{false};
   bool is_canceled_{false};
