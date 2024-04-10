@@ -45,7 +45,7 @@ public:
 
 private:
   IPNetAddr::s_ptr local_addr_;
-  IPNetAddr::s_ptr client_addr_;
+  IPNetAddr::s_ptr peer_addr_;
   TcpBuffer::s_ptr in_buffer_;
   TcpBuffer::s_ptr out_buffer_;
 

@@ -79,11 +79,11 @@ void Timer::DeleteTimerEvent(TimerEvent::s_ptr event) {
   while (begin != end) {
     if (begin->second == event) {
       timer_events_.erase(begin);
+      DEBUGLOG("successful delete timer event ,timer fd = %d", fd_);
       break;
     }
     ++begin;
   }
-  DEBUGLOG("successful delete Timer event fd = %lld", event->GetArriveTime());
 }
 
 void Timer::OnTimer() {
@@ -119,6 +119,8 @@ void Timer::OnTimer() {
     }
   }
   ResetArriveTime();
+
+  INFOLOG("run timer event ,timer fd = %d", fd_);
   //调用回调函数
   for (auto &i : task) {
     i();

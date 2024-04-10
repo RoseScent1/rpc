@@ -28,7 +28,7 @@
 #include "util.h"
 
 void test_client() {
-  std::string s("172.18.10.174:8086");
+  std::string s("127.0.0.1:8086");
   auto a = std::make_shared<rocket::IPNetAddr>(s);
   rocket::TcpClient client(a);
   client.Connect([&client, a]() {
@@ -64,33 +64,29 @@ void test_client() {
 }
 
 void test_channel() {
-  rocket::IPNetAddr::s_ptr addr =
-      std::make_shared<rocket::IPNetAddr>("172.18.10.174", 8086);
-  auto channel = std::make_shared<rocket::RpcChannel>(addr);
-  auto request = std::make_shared<makeOrderRequest>();
+  NEWCHANNEL(channel, "127.0.0.1:8086");
+  NEWCONTROLLER(controller);
+  controller->SetTimeOut(1000);
+  NEWMESSAGE(makeOrderRequest, request);
+  NEWMESSAGE(makeOrderResponse, response);
   request->set_price(1);
   request->set_goods("ysl");
-
-  auto controller = std::make_shared<rocket::RpcController>();
-
-  auto response = std::make_shared<makeOrderResponse>();
-	
-  auto closure =
-      std::make_shared<rocket::RpcClosure>([&channel, request, response]() {
-        INFOLOG("closure callback run\n request:%s ,response:%s",
-                request->ShortDebugString().c_str(),
-                response->ShortDebugString().c_str());
-        INFOLOG("new stop event loop");
-        channel->GetClient()->Stop();
-      });
-  channel->Init(controller, request, response, closure);
-
-  Order_Stub stub(channel.get());
-  stub.makeOrder(controller.get(), request.get(), response.get(),
-                 closure.get());
-	if (controller->Failed() != 0) {
-		ERRORLOG("makeOrder error, error code = %d, error info = %s",controller->GetErrorCode(),controller->GetErrorInfo().c_str());
-	}
+  auto closure = std::make_shared<rocket::RpcClosure>([&channel, request,
+                                                       response]() {
+    if (channel->GetController()->IsCanceled()) {
+      auto controller =
+          dynamic_cast<rocket::RpcController *>(channel->GetController());
+      INFOLOG("call rpc failed,error code = %d, error info = %s",
+              controller->GetErrorCode(), controller->GetErrorInfo().c_str());
+    } else {
+      INFOLOG("call rpc success, request:%s ,response:%s",
+              request->ShortDebugString().c_str(),
+              response->ShortDebugString().c_str());
+    }
+    INFOLOG("now stop event loop");
+    channel->GetClient()->Stop();
+  });
+  CALLRPC(controller, request, response, closure, channel, makeOrder);
   INFOLOG("channel s_ptr use count = %d", channel.use_count());
 }
 int main() {

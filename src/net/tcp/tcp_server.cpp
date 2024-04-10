@@ -1,6 +1,7 @@
 #include "tcp_server.h"
 #include "event_loop.h"
 #include "fd_event.h"
+#include "fd_event_group.h"
 #include "io_thread.h"
 #include "io_thread_group.h"
 #include "log.h"
@@ -25,23 +26,22 @@ TcpServer::~TcpServer() {
     delete io_thread_group_;
     io_thread_group_ = nullptr;
   }
-  if (listen_fd_event_) {
-    delete listen_fd_event_;
-    io_thread_group_ = nullptr;
-  }
 }
 
 void TcpServer::OnAccept() {
-  auto [client_fd,client_addr] = acceptor_->Accept();
-
+  auto [client_fd, client_addr] = acceptor_->Accept();
+  if (client_addr == nullptr) {
+    return;
+  }
   ++client_count_;
   // TODO: 把client_fd添加到IO线程
   // io_thread_group_->GetIOThread()->GetEventloop()->AddEpollEvent(FdEvent
   // *event);
-	IOThread* io_thread = io_thread_group_->GetIOThread();
-	TcpConnection::s_ptr connection = std::make_shared<TcpConnection>(io_thread->GetEventloop(),client_fd,128,client_addr);
-	connection->Setstate(TcpConnection::TcpState::Connected);
-	connections_.insert(connection);
+  IOThread *io_thread = io_thread_group_->GetIOThread();
+  TcpConnection::s_ptr connection = std::make_shared<TcpConnection>(
+      io_thread->GetEventloop(), client_fd, 128, client_addr);
+  connection->Setstate(TcpConnection::TcpState::Connected);
+  connections_.insert(connection);
   INFOLOG("TcpServer success get client, fd=%d", client_fd);
 }
 
@@ -52,10 +52,11 @@ void TcpServer::init() {
   main_event_loop_ = EventLoop::GetCurrentEventLoop();
 
   io_thread_group_ = new IOThreadGroup(2);
-  listen_fd_event_ = new FdEvent(acceptor_->GetListenFd());
+  listen_fd_event_ =
+      FdEventGroup::GetFdEventGRoup()->GetFdEvent(acceptor_->GetListenFd());
   listen_fd_event_->Listen(FdEvent::IN_EVENT,
                            std::bind(&TcpServer::OnAccept, this));
-  main_event_loop_->AddEpollEvent(listen_fd_event_);
+  main_event_loop_->AddEpollEvent(listen_fd_event_.get());
 }
 
 void TcpServer::start() {

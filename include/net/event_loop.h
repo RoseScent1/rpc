@@ -1,6 +1,7 @@
 #pragma once
 #include "fd_event.h"
 #include "timer.h"
+#include "timer_event.h"
 #include <functional>
 #include <mutex>
 #include <queue>
@@ -21,6 +22,7 @@ public:
   bool IsInLoopThread();
   void AddTask(std::function<void()> callback, bool wakeup = true);
 	void AddTimerEvent(TimerEvent::s_ptr event);
+	void DeleteTimerEvent(TimerEvent::s_ptr event);
 
 	static EventLoop* GetCurrentEventLoop();
 private:

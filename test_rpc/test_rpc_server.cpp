@@ -25,19 +25,20 @@ public:
                  const ::makeOrderRequest *request,
                  ::makeOrderResponse *response,
                  ::google::protobuf::Closure *done) override {
-
+    sleep(5);
     if (request->price() < 10) {
       response->set_ret_code(-1);
       response->set_res_info("not enough money");
       return;
     }
-		INFOLOG("request price = %d, goods = %s",request->price(),request->goods().c_str());
+    INFOLOG("request price = %d, goods = %s", request->price(),
+            request->goods().c_str());
     response->set_order_id("123456");
   }
 };
 
 void test() {
-  std::string s("172.18.10.174:8086");
+  std::string s("127.0.0.1:8086");
   auto a = std::make_shared<rocket::IPNetAddr>(s);
   rocket::TcpServer tcp_server(a);
   tcp_server.start();

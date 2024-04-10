@@ -47,8 +47,9 @@ void TcpClient::Connect(std::function<void()> done) {
     event_loop_->Loop();
   } else if (rt == -1) {
     if (errno == EINPROGRESS) {
-			// 错误事件是epoll默认监听的,这里只是提供了出错时执行的回调函数
-			// 当服务端未启用监听时就可能导致客户端触发错误事件,返回值EPOLLERR 或者EPOLLHUP
+      // 错误事件是epoll默认监听的,这里只是提供了出错时执行的回调函数
+      // 当服务端未启用监听时就可能导致客户端触发错误事件,返回值EPOLLERR
+      // 或者EPOLLHUP
       fd_event_->Listen(FdEvent::ERR_EVENT, [this]() {
         if (errno == ECONNREFUSED) {
           connect_err_code_ = ERROR_FAILED_CONNECT;
@@ -124,4 +125,8 @@ void TcpClient::Stop() { event_loop_->Stop(); }
 
 int TcpClient::GetErrCode() { return connect_err_code_; }
 std::string TcpClient::GetErrInfo() { return err_info_; }
+
+EventLoop* TcpClient::GetEventLoop() {
+	return event_loop_;
+}
 } // namespace rocket

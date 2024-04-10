@@ -89,6 +89,10 @@ void EventLoop::AddTimerEvent(TimerEvent::s_ptr event) {
   timer_->AddTimerEvent(event);
 }
 
+void EventLoop::DeleteTimerEvent(TimerEvent::s_ptr event) {
+  timer_->DeleteTimerEvent(event);
+}
+
 void EventLoop::Loop() {
   while (!is_stop_) {
     std::unique_lock<std::mutex> lock(latch_);
@@ -119,14 +123,6 @@ void EventLoop::Loop() {
         if (fd_event == nullptr) {
           continue;
         }
-        if (trigger_event.events & EPOLLIN) {
-          DEBUGLOG("fd[%d] trigger EPOLLIN", fd_event->GetFd())
-          AddTask(fd_event->Handler(FdEvent::IN_EVENT));
-        }
-        if (trigger_event.events & EPOLLOUT) {
-          DEBUGLOG("fd[%d] trigger EPOLLOUT", fd_event->GetFd())
-          AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
-        }
         if (trigger_event.events & EPOLLERR) {
           DeleteEpollEvent(fd_event);
           DEBUGLOG("fd[%d] trigger EPOLLERR", fd_event->GetFd());
@@ -140,6 +136,14 @@ void EventLoop::Loop() {
           if (fd_event->Handler(FdEvent::ERR_EVENT) != nullptr) {
             AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
           }
+        }
+        if (trigger_event.events & EPOLLIN) {
+          DEBUGLOG("fd[%d] trigger EPOLLIN", fd_event->GetFd())
+          AddTask(fd_event->Handler(FdEvent::IN_EVENT));
+        }
+        if (trigger_event.events & EPOLLOUT) {
+          DEBUGLOG("fd[%d] trigger EPOLLOUT", fd_event->GetFd())
+          AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
         }
       }
     }
@@ -200,6 +204,7 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
                event->GetFd(), errno, strerror(errno));
     }
     listen_fds_.erase(event->GetFd());
+    close(event->GetFd());
     DEBUGLOG("delete event success, fd[%d]", event->GetFd());
   } else {
     auto cb = [this, event] {
@@ -214,6 +219,8 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
       }
       listen_fds_.erase(event->GetFd());
       DEBUGLOG("delete event success, fd[%d]", event->GetFd());
+
+      close(event->GetFd());
     };
     AddTask(cb, true);
   }

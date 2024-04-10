@@ -4,11 +4,13 @@
 #include <asm-generic/socket.h>
 #include <cassert>
 #include <cerrno>
+#include <cstddef>
 #include <cstring>
 #include <fcntl.h>
 #include <memory>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <unistd.h>
 namespace rocket {
 TcpAcceptor::TcpAcceptor(NetAddr::s_ptr addr) : addr_(addr) {
   if (!addr->CheckValid()) {
@@ -41,7 +43,9 @@ TcpAcceptor::TcpAcceptor(NetAddr::s_ptr addr) : addr_(addr) {
     exit(0);
   }
 }
-TcpAcceptor::~TcpAcceptor() {}
+TcpAcceptor::~TcpAcceptor() {
+	close(listen_fd_);
+}
 
 std::pair<int, NetAddr::s_ptr> TcpAcceptor::Accept() {
   if (family_ == AF_INET) {
@@ -52,6 +56,7 @@ std::pair<int, NetAddr::s_ptr> TcpAcceptor::Accept() {
         accept(listen_fd_, reinterpret_cast<sockaddr *>(&client_addr), &len);
     if (client_fd < 0) {
       ERRORLOG("accept error errno %d, %s", errno, strerror(errno));
+			return {};
     }
     //客户端addr,用于返回值
     IPNetAddr::s_ptr addr = std::make_shared<IPNetAddr>(client_addr);

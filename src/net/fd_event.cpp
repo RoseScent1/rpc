@@ -24,6 +24,9 @@ FdEvent::FdEvent(int fd) : fd_(fd) {
 }
 FdEvent::FdEvent() { memset(&listen_event_, 0, sizeof(listen_event_)); }
 FdEvent::~FdEvent() {
+  if (fd_ > 0) {
+    close(fd_);
+  }
   // INFOLOG("~FdEvent");
 }
 std::function<void()> FdEvent::Handler(TriggerEvent event_type) {

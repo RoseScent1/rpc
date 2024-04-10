@@ -20,7 +20,7 @@ void test_connection() {
 
   sockaddr_in ser_addr{};
   ser_addr.sin_family = AF_INET;
-  ser_addr.sin_addr.s_addr = inet_addr("172.18.10.174");
+  ser_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   ser_addr.sin_port = htons(8086);
   socklen_t len = sizeof(ser_addr);
   if (connect(client_fd, reinterpret_cast<sockaddr *>(&ser_addr), len) == -1)
@@ -35,7 +35,7 @@ void test_connection() {
 }
 
 void test_client() {
-  std::string s("172.18.10.174:8086");
+  std::string s("127.0.0.1:8086");
   auto a = std::make_shared<rocket::IPNetAddr>(s);
   rocket::TcpClient client(a);
   client.Connect([&client, a]() {

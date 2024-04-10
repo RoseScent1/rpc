@@ -25,7 +25,7 @@ namespace rocket {
 
 TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
                              NetAddr::s_ptr client_addr, ConnectionType type)
-    : client_addr_(client_addr), event_loop_(event_loop), state_(NotConnected),
+    : peer_addr_(client_addr), event_loop_(event_loop), state_(NotConnected),
       connection_type(type) {
 
   coder_ = std::make_shared<TinyPBCoder>();
@@ -41,6 +41,7 @@ TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
 }
 TcpConnection::~TcpConnection() { 
 	// INFOLOG("~TcpConnection "); 
+	close(fd_event_->GetFd());
 }
 
 void TcpConnection::Setstate(const TcpState state) { state_ = state; }
@@ -55,7 +56,7 @@ void TcpConnection::Read() {
   // 从socket缓冲区调用系统read读取数据到inbuffer
   if (state_ != Connected) {
     ERRORLOG("read disconnected, client addr[%s],client fd[%d]",
-             client_addr_->ToString().c_str(), fd_event_->GetFd());
+             peer_addr_->ToString().c_str(), fd_event_->GetFd());
     return;
   }
   // 是否读完？
@@ -73,8 +74,8 @@ void TcpConnection::Read() {
     int rt = read(fd_event_->GetFd(), &(in_buffer_->buffer_[write_index]),
                   read_count);
 
-    INFOLOG("success read %d bytes from %s, client fd = %d", rt,
-            client_addr_->ToString().c_str(), fd_event_->GetFd());
+    INFOLOG("success read %d bytes from %s, peer fd = %d", rt,
+            peer_addr_->ToString().c_str(), fd_event_->GetFd());
 
     // 读成功了！进行调整
     if (rt > 0) {
@@ -100,7 +101,7 @@ void TcpConnection::Read() {
   // 处理关闭连接
   if (is_close) {
     DEBUGLOG("client closed, client addr = %s, client_fd = %d",
-             client_addr_->ToString().c_str(), fd_event_->GetFd());
+             peer_addr_->ToString().c_str(), fd_event_->GetFd());
     Clear();
     return;
   }
@@ -124,7 +125,7 @@ void TcpConnection::Execute() {
 
     for (auto &i : result) {
       INFOLOG("success get request[%s] from client[%s]", i->msg_id_.c_str(),
-              client_addr_->ToString().c_str());
+              peer_addr_->ToString().c_str());
       auto message = std::make_shared<TinyPBProtocol>();
 
 			// TODO:有问题
@@ -150,7 +151,7 @@ void TcpConnection::Execute() {
 void TcpConnection::Write() {
   if (state_ != Connected) {
     ERRORLOG("write disconnected, client addr[%s],client fd[%d]",
-             client_addr_->ToString().c_str(), fd_event_->GetFd());
+             peer_addr_->ToString().c_str(), fd_event_->GetFd());
     return;
   }
 
@@ -169,7 +170,7 @@ void TcpConnection::Write() {
     int write_size = out_buffer_->ReadAble();
     if (write_size == 0) {
       DEBUGLOG("no data need to send to client [%s]",
-               client_addr_->ToString().c_str());
+               peer_addr_->ToString().c_str());
       is_write_all = true;
       break;
     }
@@ -178,7 +179,7 @@ void TcpConnection::Write() {
                    write_size);
     if (rt >= write_size) {
       DEBUGLOG("write success %d bytes to client [%s]", rt,
-               client_addr_->ToString().c_str());
+               peer_addr_->ToString().c_str());
       is_write_all = true;
       break;
     }
@@ -207,8 +208,7 @@ void TcpConnection::Clear() {
   if (state_ == NotConnected) {
     return;
   }
-  fd_event_->Cancel(FdEvent::IN_EVENT);
-  fd_event_->Cancel(FdEvent::OUT_EVENT);
+
   event_loop_->DeleteEpollEvent(fd_event_.get());
   state_ = NotConnected;
 }

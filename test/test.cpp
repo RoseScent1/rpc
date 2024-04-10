@@ -25,7 +25,7 @@ void test_iothread() {
   memset(&addr, 0, sizeof(addr));
   addr.sin_port = htons(12347);
   addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = inet_addr("172.18.10.174");
+  addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   if (bind(listenfd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == -1) {
     DEBUGLOG("bind = -1");
     exit(0);
@@ -74,7 +74,7 @@ int main() {
   // memset(&addr, 0, sizeof(addr));
   // addr.sin_port = htons(12347);
   // addr.sin_family = AF_INET;
-  // addr.sin_addr.s_addr = inet_addr("172.18.10.174");
+  // addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   // if (bind(listenfd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) ==
   // -1) {
   //   DEBUGLOG("bind = -1");

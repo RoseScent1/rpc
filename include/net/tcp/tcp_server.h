@@ -27,7 +27,7 @@ private:
 
   IOThreadGroup *io_thread_group_; // subReactor
 
-  FdEvent *listen_fd_event_;
+  FdEvent::s_ptr listen_fd_event_;
 
 	int client_count_;
 	std::set<TcpConnection::s_ptr> connections_;
