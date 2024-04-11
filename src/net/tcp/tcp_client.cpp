@@ -87,6 +87,11 @@ void TcpClient::Connect(std::function<void()> done) {
       });
       event_loop_->AddEpollEvent(fd_event_.get());
       event_loop_->Loop();
+    } else if (errno == EISCONN) {
+      if (done) {
+        done();
+      }
+      event_loop_->Loop();
     } else {
       connect_err_code_ = ERROR_FAILED_CONNECT;
       err_info_ = "connect error sys_error = " + std::string(strerror(errno));
@@ -112,7 +117,7 @@ void TcpClient::WriteMessage(
 
 // 异步读取message
 // 读取message成功调用done,入参就是message对象
-void TcpClient::ReadMessage(const std::string &msg_id,
+void TcpClient::ReadMessage(const uint32_t msg_id,
                             std::function<void(AbstractProtocol::s_ptr)> done) {
 
   // 1. 监听可写
@@ -126,7 +131,5 @@ void TcpClient::Stop() { event_loop_->Stop(); }
 int TcpClient::GetErrCode() { return connect_err_code_; }
 std::string TcpClient::GetErrInfo() { return err_info_; }
 
-EventLoop* TcpClient::GetEventLoop() {
-	return event_loop_;
-}
+EventLoop *TcpClient::GetEventLoop() { return event_loop_; }
 } // namespace rocket

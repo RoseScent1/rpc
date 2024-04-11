@@ -27,50 +27,12 @@
 #include "tinypb_protocol.h"
 #include "util.h"
 
-void test_client() {
-  std::string s("127.0.0.1:8086");
-  auto a = std::make_shared<rocket::IPNetAddr>(s);
-  rocket::TcpClient client(a);
-  client.Connect([&client, a]() {
-    INFOLOG("client connect to server[%s]", a->ToString().c_str());
-    auto message = std::make_shared<rocket::TinyPBProtocol>();
-
-    message->msg_id_ = "999";
-
-    makeOrderRequest request;
-    request.set_price(100);
-    request.set_goods("apple");
-    message->method_name_ = "Order.makeOrder";
-    if (!request.SerializeToString(&(message->pb_data_))) {
-      ERRORLOG("client serializer error")
-      return;
-    }
-    client.WriteMessage(message, [](rocket::AbstractProtocol::s_ptr msg_ptr) {
-      DEBUGLOG("write message success");
-    });
-    client.ReadMessage("999", [](rocket::AbstractProtocol::s_ptr msg_ptr) {
-      auto message = std::dynamic_pointer_cast<rocket::TinyPBProtocol>(msg_ptr);
-      DEBUGLOG("read req_ie = [%s] get response success,pb_data = %s",
-               msg_ptr->msg_id_.c_str(), message->pb_data_.c_str());
-      makeOrderResponse response;
-      if (!response.ParseFromString(message->pb_data_)) {
-        ERRORLOG("client deserializer error")
-        return;
-      }
-      DEBUGLOG("get response success, response[%s]",
-               response.ShortDebugString().c_str());
-    });
-  });
-}
 
 void test_channel() {
   NEWCHANNEL(channel, "127.0.0.1:8086");
   NEWCONTROLLER(controller);
-  controller->SetTimeOut(1000);
   NEWMESSAGE(makeOrderRequest, request);
   NEWMESSAGE(makeOrderResponse, response);
-  request->set_price(1);
-  request->set_goods("ysl");
   auto closure = std::make_shared<rocket::RpcClosure>([&channel, request,
                                                        response]() {
     if (channel->GetController()->IsCanceled()) {
@@ -86,8 +48,15 @@ void test_channel() {
     INFOLOG("now stop event loop");
     channel->GetClient()->Stop();
   });
+  controller->SetTimeOut(1000);
+  request->set_price(1000);
+  request->set_goods("ysl");
   CALLRPC(controller, request, response, closure, channel, makeOrder);
-  INFOLOG("channel s_ptr use count = %d", channel.use_count());
+
+  controller->SetTimeOut(1000);
+  request->set_price(1000);
+  request->set_goods("ysl");
+  CALLRPC(controller, request, response, closure, channel, makeOrder);
 }
 int main() {
   rocket::Config::SetGlobalConfig("/home/cwl/Desktop/rpc/conf/rocket.xml");

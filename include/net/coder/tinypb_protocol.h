@@ -16,7 +16,6 @@ public:
 
 public:
   int32_t pk_len_{0};
-  int32_t msg_id_len_{0};
   int32_t method_name_len_{0};
   std::string method_name_;
   int32_t err_code_{0};

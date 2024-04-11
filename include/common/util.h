@@ -7,6 +7,6 @@ namespace rocket {
 pid_t getPid();
 pid_t getThreadid();
 int64_t getNowMs();
-int32_t getInt32FromNetByte(const char * buf);
-std::string GenMsgId();
+uint32_t getInt32FromNetByte(const char * buf);
+uint32_t GenMsgId();
 } // namespace rocket

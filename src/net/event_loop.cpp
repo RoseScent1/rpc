@@ -94,7 +94,8 @@ void EventLoop::DeleteTimerEvent(TimerEvent::s_ptr event) {
 }
 
 void EventLoop::Loop() {
-  while (!is_stop_) {
+	is_stop_ = false;
+  while (true) {
     std::unique_lock<std::mutex> lock(latch_);
     std::queue<std::function<void()>> task_queue;
     task_queue.swap(task_queue_);
@@ -103,7 +104,7 @@ void EventLoop::Loop() {
       task_queue.front()();
       task_queue.pop();
     }
-    if (is_loop_) {
+    if (is_stop_) {
       return;
     }
     int timeout = epoll_max_timeout;
@@ -148,7 +149,6 @@ void EventLoop::Loop() {
       }
     }
   }
-  is_loop_ = true;
 }
 
 void EventLoop::WakeUp() {

@@ -42,7 +42,7 @@ void RpcDispatcher::Dispatch(AbstractProtocol::s_ptr request,
 
   it = service_table_.find("Order");
   if (it == service_table_.end()) {
-    ERRORLOG("msg_id = %s, service %s not found", req_protocol->msg_id_.c_str(),
+    ERRORLOG("msg_id = [%d], service %s not found", req_protocol->msg_id_,
              service_name.c_str());
     rsp_protocol->SetErrInfo(ERROR_SERVICE_NOT_FOUND, "service not found");
     return;
@@ -51,9 +51,8 @@ void RpcDispatcher::Dispatch(AbstractProtocol::s_ptr request,
   auto service = it->second;
   auto method = service->GetDescriptor()->FindMethodByName(method_name);
   if (method == nullptr) {
-    ERRORLOG("req id = %s,service %s method %s not found",
-             req_protocol->msg_id_.c_str(), service_name.c_str(),
-             method_name.c_str());
+    ERRORLOG("msg_id = [%d],service %s method %s not found",
+             req_protocol->msg_id_, service_name.c_str(), method_name.c_str());
     rsp_protocol->SetErrInfo(ERROR_SERVICE_NOT_FOUND, "method not found");
     return;
   }
@@ -63,14 +62,13 @@ void RpcDispatcher::Dispatch(AbstractProtocol::s_ptr request,
       service->GetRequestPrototype(method).New());
   //  将pb_data反序列化为request
   if (!req_msg->ParseFromString(req_protocol->pb_data_)) {
-    ERRORLOG("request deserialize error,req id = %s,service %s method %s ",
-             req_protocol->msg_id_.c_str(), service_name.c_str(),
-             method_name.c_str());
+    ERRORLOG("msg_id = [%d], request deserialize error,service %s method %s ",
+             req_protocol->msg_id_, service_name.c_str(), method_name.c_str());
     rsp_protocol->SetErrInfo(ERROR_FAILED_DESERIALIZE, "deserialize error");
     return;
   }
-  INFOLOG("get rpc request %s, req id = %s",
-          req_msg->ShortDebugString().c_str(), req_protocol->msg_id_.c_str());
+  INFOLOG("msg_id = [%d], get rpc request %s", req_protocol->msg_id_,
+          req_msg->ShortDebugString().c_str());
 
   // 构造返回对象
   std::unique_ptr<google::protobuf::Message> rsp_msg(
@@ -84,14 +82,14 @@ void RpcDispatcher::Dispatch(AbstractProtocol::s_ptr request,
       nullptr); // nullptr 后续可以根据需要自己添加,具体实现与RpcController有关
 
   if (!rsp_msg->SerializeToString(&(rsp_protocol->pb_data_))) {
-    ERRORLOG("response serialize error,req id = %s,message = %s",
-             req_protocol->msg_id_.c_str(), rsp_msg->DebugString().c_str());
+    ERRORLOG("msg_id = [%d], response serialize error, message = %s",
+             req_protocol->msg_id_, rsp_msg->DebugString().c_str());
     rsp_protocol->SetErrInfo(ERROR_FAILED_SERIALIZE, "serialize error");
     return;
   }
   rsp_protocol->err_code_ = 0;
-  INFOLOG("req id %s,service %s, method %s success dispatch",
-          req_protocol->msg_id_.c_str(), req_msg->ShortDebugString().c_str(),
+  INFOLOG("msg_id = [%d], service %s, method %s success dispatch",
+          req_protocol->msg_id_, req_msg->ShortDebugString().c_str(),
           rsp_msg->ShortDebugString().c_str());
 }
 

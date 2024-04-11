@@ -2,6 +2,7 @@
 
 #include "abstract_coder.h"
 #include "abstract_protocol.h"
+#include "util.h"
 #include <memory>
 namespace rocket {
 
@@ -24,7 +25,7 @@ public:
     auto msg = std::make_shared<StringProtocol>();
     message.emplace_back(msg);
     in_buffer->ReadFromBuffer(msg->info, in_buffer->ReadAble());
-    msg->msg_id_ = "123";
+    msg->msg_id_ =getNowMs();
   }
 };
 } // namespace rocket

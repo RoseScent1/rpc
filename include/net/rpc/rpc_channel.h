@@ -19,11 +19,13 @@ namespace rocket {
   auto var_name = std::make_shared<rocket::RpcController>()
 
 #define CALLRPC(controller_name, request_name, response_name, closure_name,    \
-                channel_name, method_name)                                                  \
-  channel->Init(controller_name, request_name, response_name, closure_name);   \
-  Order_Stub stub(channel_name.get());                                         \
-  stub.method_name(controller_name.get(), request_name.get(),                    \
-                 response_name.get(), closure_name.get())
+                channel_name, method_name)                                     \
+  {                                                                            \
+    channel->Init(controller_name, request_name, response_name, closure_name); \
+    Order_Stub stub(channel_name.get());                                       \
+    stub.method_name(controller_name.get(), request_name.get(),                \
+                     response_name.get(), closure_name.get());                 \
+  }
 
 class RpcChannel : public google::protobuf::RpcChannel {
 public:

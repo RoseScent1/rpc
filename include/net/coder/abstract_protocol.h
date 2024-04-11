@@ -12,7 +12,7 @@ public:
 
 
 public:
-  std::string msg_id_; // 请求号，唯一标识一个请求或者响应
+  uint32_t msg_id_; // 请求号，唯一标识一个请求或者响应
 
 };
 } // namespace rocket

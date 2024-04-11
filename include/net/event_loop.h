@@ -30,7 +30,7 @@ private:
   void DealWakeUp();
   void InitTimer();
 	
-  bool is_stop_;
+  bool is_stop_{false};
 
   pid_t thread_id_;
 
@@ -42,7 +42,6 @@ private:
   std::mutex latch_;
   std::set<int> listen_fds_;
   std::queue<std::function<void()>> task_queue_;
-	bool is_loop_{false};
 };
 
 } // namespace rocket

@@ -39,9 +39,9 @@ TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
     listenRead();
   }
 }
-TcpConnection::~TcpConnection() { 
-	// INFOLOG("~TcpConnection "); 
-	close(fd_event_->GetFd());
+TcpConnection::~TcpConnection() {
+  // INFOLOG("~TcpConnection ");
+  close(fd_event_->GetFd());
 }
 
 void TcpConnection::Setstate(const TcpState state) { state_ = state; }
@@ -73,14 +73,12 @@ void TcpConnection::Read() {
 
     int rt = read(fd_event_->GetFd(), &(in_buffer_->buffer_[write_index]),
                   read_count);
-
     INFOLOG("success read %d bytes from %s, peer fd = %d", rt,
             peer_addr_->ToString().c_str(), fd_event_->GetFd());
 
     // 读成功了！进行调整
     if (rt > 0) {
       in_buffer_->ModifyWriteIndex(rt);
-
       // 还有数据没有读完
       if (rt == read_count) {
         continue;
@@ -95,6 +93,10 @@ void TcpConnection::Read() {
     } else if (rt == -1 && errno == EAGAIN) {
       is_read_all = true;
       break;
+    } else {
+      event_loop_->DeleteEpollEvent(fd_event_.get());
+      state_ = TcpConnection::NotConnected;
+      return;
     }
   }
 
@@ -124,11 +126,11 @@ void TcpConnection::Execute() {
     coder_->Decode(result, in_buffer_);
 
     for (auto &i : result) {
-      INFOLOG("success get request[%s] from client[%s]", i->msg_id_.c_str(),
+      INFOLOG("success get request[%d] from client[%s]", i->msg_id_,
               peer_addr_->ToString().c_str());
       auto message = std::make_shared<TinyPBProtocol>();
 
-			// TODO:有问题
+      // TODO:有问题
       RpcDispatcher::GetRpcDispatcher()->Dispatch(i, message);
 
       replay_message.emplace_back(message);
@@ -141,7 +143,7 @@ void TcpConnection::Execute() {
     for (auto &i : result) {
       auto it = read_done_.find(i->msg_id_);
       if (it != read_done_.end()) {
-        INFOLOG("req id = %s", i->msg_id_.c_str());
+        INFOLOG("msg_id = [%d]", i->msg_id_);
         it->second(i);
       }
     }
@@ -162,9 +164,9 @@ void TcpConnection::Write() {
       message.emplace_back(protocol);
     }
     // 将数据写入buffer，然后全部发送
+
     coder_->EnCode(message, out_buffer_);
   }
-
   bool is_write_all{false};
   while (!is_write_all) {
     int write_size = out_buffer_->ReadAble();
@@ -181,11 +183,16 @@ void TcpConnection::Write() {
       DEBUGLOG("write success %d bytes to client [%s]", rt,
                peer_addr_->ToString().c_str());
       is_write_all = true;
+      out_buffer_->ModifyReadIndex(rt);
       break;
     }
     if (rt == -1 && errno == EAGAIN) {
       // 发送缓冲区满
       ERRORLOG("write data error, errno = EAGAIN and rt == -1");
+      break;
+    } else if (rt == -1) {
+      event_loop_->DeleteEpollEvent(fd_event_.get());
+      state_ = TcpConnection::NotConnected;
       break;
     }
     out_buffer_->ModifyReadIndex(rt);
@@ -195,7 +202,8 @@ void TcpConnection::Write() {
     event_loop_->AddEpollEvent(fd_event_.get());
   }
 
-  if (connection_type == TcpConnection::Client) {
+  if (connection_type == TcpConnection::Client &&
+      state_ == TcpConnection::Connected) {
     for (auto &[arg, func] : write_done_) {
       func(arg);
     }
@@ -214,7 +222,7 @@ void TcpConnection::Clear() {
 }
 
 void TcpConnection::ShutDown() {
-  if ( state_ == NotConnected) {
+  if (state_ == NotConnected) {
     return;
   }
   state_ = HalfClosing;
@@ -237,8 +245,7 @@ void TcpConnection::PushWriteMessage(
 }
 
 void TcpConnection::PushReadMessage(
-    const std::string &msg_id,
-    std::function<void(AbstractProtocol::s_ptr)> &func) {
+    const uint32_t msg_id, std::function<void(AbstractProtocol::s_ptr)> &func) {
   read_done_.insert({msg_id, func});
 }
 

@@ -30,7 +30,6 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
                             google::protobuf::Closure *done) {
 
   auto req_protocol = std::make_shared<TinyPBProtocol>();
-  req_protocol->msg_id_ = GenMsgId();
 
   if (!is_init_) {
     ERRORLOG("not init RPC Channel");
@@ -44,13 +43,13 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
 
   req_protocol->msg_id_ = GenMsgId();
   req_protocol->method_name_ = method->full_name();
-  INFOLOG("msg_id = [%s] call method name [%s]", req_protocol->msg_id_.c_str(),
+  INFOLOG("msg_id = [%d] call method name [%s]", req_protocol->msg_id_,
           req_protocol->method_name_.c_str());
 
   // request 序列化
   if (!request->SerializeToString(&(req_protocol->pb_data_))) {
-    ERRORLOG("msg_id = [%s] , failed to serializer ,error message = %s",
-             req_protocol->msg_id_.c_str(),
+    ERRORLOG("msg_id = [%d] , failed to serializer ,error message = %s",
+             req_protocol->msg_id_,
              request->ShortDebugString().c_str());
     return;
   }
@@ -76,17 +75,16 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     auto my_controller = dynamic_cast<RpcController *>(GetController());
     if (client_->GetErrCode() != 0) {
       my_controller->SetError(client_->GetErrCode(), client_->GetErrInfo());
-      ERRORLOG("msg-id = %s, connect error,error info[%s]",
-               req_protocol->msg_id_.c_str(),
+      ERRORLOG("msg_id = %d, connect error,error info[%s]",
+               req_protocol->msg_id_,
                my_controller->GetErrorInfo().c_str());
       return;
     }
     client_->WriteMessage(req_protocol, [my_controller, req_protocol,
                                          this](rocket::AbstractProtocol::s_ptr
                                                    msg_ptr) {
-      INFOLOG("write success msg_id = [%s]", req_protocol->msg_id_.c_str());
+      INFOLOG("write success msg_id = [%d]", req_protocol->msg_id_);
       client_->ReadMessage(
-
           req_protocol->msg_id_,
           [my_controller, this](rocket::AbstractProtocol::s_ptr msg_ptr) {
             // 取消定时器
@@ -107,8 +105,8 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
               return;
             }
             INFOLOG(
-                "read req_id = [%s] get response success,call method name= %s",
-                msg_ptr->msg_id_.c_str(), rsp_protocol->method_name_.c_str());
+                "read req_id = [%d] get response success,call method name= %s",
+                msg_ptr->msg_id_, rsp_protocol->method_name_.c_str());
 
             if (!controller_->IsCanceled() && GetClosure()) {
               GetClosure()->Run();

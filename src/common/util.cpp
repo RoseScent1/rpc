@@ -20,12 +20,12 @@ int64_t getNowMs() {
   return now_time.tv_sec * 1000 + now_time.tv_usec / 1000;
 }
 
-int32_t getInt32FromNetByte(const char *buf) {
-  int32_t res;
+uint32_t getInt32FromNetByte(const char *buf) {
+  uint32_t res;
   memcpy(&res, buf, sizeof(res));
   return ntohl(res);
 }
 
-static thread_local uint64_t msg_id = 0;
-std::string GenMsgId() { return std::to_string(msg_id++); }
+static thread_local uint32_t msg_id = 0;
+uint32_t GenMsgId() { return msg_id++; }
 } // namespace rocket

@@ -24,7 +24,7 @@ public:
 
   // 异步读取message
   // 读取message成功调用done,入参就是message对象
-  void ReadMessage(const std::string &msg_id,
+  void ReadMessage(const uint32_t msg_id,
                    std::function<void(AbstractProtocol::s_ptr)> done);
 
   // 结束loop
