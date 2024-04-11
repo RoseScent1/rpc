@@ -19,14 +19,14 @@ namespace rocket {
 Timer::Timer() {
 
   fd_ = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-  DEBUGLOG("timer fd = %d", fd_);
+  RPC_DEBUG_LOG("timer fd = %d", fd_);
   //把fd的可读事件放到fd上监听
   Listen(FdEvent::IN_EVENT, std::bind(&Timer::OnTimer, this));
 }
 
 Timer::~Timer() {
 
-  // INFOLOG("~Timer");
+  // RPC_INFO_LOG("~Timer");
 }
 
 void Timer::ResetArriveTime() {
@@ -51,10 +51,10 @@ void Timer::ResetArriveTime() {
   value.it_value = ts;
   int rt = timerfd_settime(fd_, 0, &value, NULL);
   if (rt != 0) {
-    ERRORLOG("timerfd_settime error, errno = %d, %s", errno,
+    RPC_ERROR_LOG("timerfd_settime error, errno = %d, %s", errno,
              std::strerror(errno));
   }
-  DEBUGLOG("fd = %d, timer reset to %lld", fd_, now_time + interval);
+  RPC_DEBUG_LOG("fd = %d, timer reset to %lld", fd_, now_time + interval);
 }
 
 void Timer::AddTimerEvent(TimerEvent::s_ptr event) {
@@ -79,7 +79,7 @@ void Timer::DeleteTimerEvent(TimerEvent::s_ptr event) {
   while (begin != end) {
     if (begin->second == event) {
       timer_events_.erase(begin);
-      DEBUGLOG("successful delete timer event ,timer fd = %d", fd_);
+      RPC_DEBUG_LOG("successful delete timer event ,timer fd = %d", fd_);
       break;
     }
     ++begin;
@@ -120,7 +120,7 @@ void Timer::OnTimer() {
   }
   ResetArriveTime();
 
-  INFOLOG("run timer event ,timer fd = %d", fd_);
+  RPC_INFO_LOG("run timer event ,timer fd = %d", fd_);
   //调用回调函数
   for (auto &i : task) {
     i();

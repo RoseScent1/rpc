@@ -27,7 +27,7 @@ FdEvent::~FdEvent() {
   if (fd_ > 0) {
     close(fd_);
   }
-  // INFOLOG("~FdEvent");
+  // RPC_INFO_LOG("~FdEvent");
 }
 std::function<void()> FdEvent::Handler(TriggerEvent event_type) {
   if (event_type == TriggerEvent::IN_EVENT) {
@@ -63,14 +63,14 @@ void FdEvent::Cancel(TriggerEvent event_type) {
 WakeUpFdEvent::WakeUpFdEvent(int fd) : FdEvent(fd) {}
 
 WakeUpFdEvent::~WakeUpFdEvent(){
-    // INFOLOG("~WakeUpFdEvent");
+    // RPC_INFO_LOG("~WakeUpFdEvent");
 };
 
 void WakeUpFdEvent::WakeUp() {
   char buff[8] = "a";
   int rt = write(fd_, buff, 8);
   if (rt != 8) {
-    ERRORLOG("write to wakeup fd less than 8 bytes, fd[%d]", fd_);
+    RPC_ERROR_LOG("write to wakeup fd less than 8 bytes, fd[%d]", fd_);
   }
 }
 

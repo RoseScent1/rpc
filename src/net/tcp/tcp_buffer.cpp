@@ -8,7 +8,7 @@ TcpBuffer::TcpBuffer(int size) : read_index_(0), write_index_(0), size_(size) {
 }
 
 TcpBuffer::~TcpBuffer() {
-  // INFOLOG("~TcpBuffer");
+  // RPC_INFO_LOG("~TcpBuffer");
 }
 
 int TcpBuffer::ReadAble() { return write_index_ - read_index_; }
@@ -60,7 +60,7 @@ void TcpBuffer::AdjustBuffer() {
 
 void TcpBuffer::ModifyReadIndex(uint32_t size) {
   if (read_index_ + size >= size_) {
-    ERRORLOG("move read index error size too big");
+    RPC_ERROR_LOG("move read index error size too big");
     exit(0);
   }
   read_index_ += size;
@@ -68,7 +68,7 @@ void TcpBuffer::ModifyReadIndex(uint32_t size) {
 }
 void TcpBuffer::ModifyWriteIndex(uint32_t size) {
   if (write_index_ + size >= size_) {
-    ERRORLOG("move write index error size too big");
+    RPC_ERROR_LOG("move write index error size too big");
     exit(0);
   }
   write_index_ += size;

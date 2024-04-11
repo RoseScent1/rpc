@@ -9,7 +9,6 @@
 #include "tcp_buffer.h"
 #include "tinypb_coder.h"
 #include "tinypb_protocol.h"
-#include "util.h"
 #include <asm-generic/errno-base.h>
 #include <cerrno>
 #include <cstring>
@@ -40,7 +39,7 @@ TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
   }
 }
 TcpConnection::~TcpConnection() {
-  // INFOLOG("~TcpConnection ");
+  // RPC_INFO_LOG("~TcpConnection ");
   close(fd_event_->GetFd());
 }
 
@@ -53,10 +52,10 @@ void TcpConnection::SetType(TcpConnection::ConnectionType type) {
 }
 
 void TcpConnection::Read() {
-  // 从socket缓冲区调用系统read读取数据到inbuffer
+  // 从socket缓冲区调用系统read读取数据到in_buffer
   if (state_ != Connected) {
-    ERRORLOG("read disconnected, client addr[%s],client fd[%d]",
-             peer_addr_->ToString().c_str(), fd_event_->GetFd());
+    RPC_ERROR_LOG("read disconnected, client addr[%s],client fd[%d]",
+                  peer_addr_->ToString().c_str(), fd_event_->GetFd());
     return;
   }
   // 是否读完？
@@ -73,8 +72,8 @@ void TcpConnection::Read() {
 
     int rt = read(fd_event_->GetFd(), &(in_buffer_->buffer_[write_index]),
                   read_count);
-    INFOLOG("success read %d bytes from %s, peer fd = %d", rt,
-            peer_addr_->ToString().c_str(), fd_event_->GetFd());
+    RPC_INFO_LOG("success read %d bytes from %s, peer fd = %d", rt,
+                 peer_addr_->ToString().c_str(), fd_event_->GetFd());
 
     // 读成功了！进行调整
     if (rt > 0) {
@@ -94,22 +93,21 @@ void TcpConnection::Read() {
       is_read_all = true;
       break;
     } else {
-      event_loop_->DeleteEpollEvent(fd_event_.get());
-      state_ = TcpConnection::NotConnected;
-      return;
+      is_close = true;
+      break;
     }
   }
 
   // 处理关闭连接
   if (is_close) {
-    DEBUGLOG("client closed, client addr = %s, client_fd = %d",
-             peer_addr_->ToString().c_str(), fd_event_->GetFd());
+    RPC_DEBUG_LOG("client closed, client addr = %s, client_fd = %d",
+                  peer_addr_->ToString().c_str(), fd_event_->GetFd());
     Clear();
     return;
   }
 
   if (!is_read_all) {
-    INFOLOG("not read all data");
+    RPC_INFO_LOG("not read all data");
   }
   // 读完就开始进行rpc解析
   Execute();
@@ -126,11 +124,11 @@ void TcpConnection::Execute() {
     coder_->Decode(result, in_buffer_);
 
     for (auto &i : result) {
-      INFOLOG("success get request[%d] from client[%s]", i->msg_id_,
-              peer_addr_->ToString().c_str());
+      RPC_INFO_LOG("success get request[%d] from client[%s]", i->msg_id_,
+                   peer_addr_->ToString().c_str());
       auto message = std::make_shared<TinyPBProtocol>();
 
-      // TODO:有问题
+
       RpcDispatcher::GetRpcDispatcher()->Dispatch(i, message);
 
       replay_message.emplace_back(message);
@@ -143,7 +141,7 @@ void TcpConnection::Execute() {
     for (auto &i : result) {
       auto it = read_done_.find(i->msg_id_);
       if (it != read_done_.end()) {
-        INFOLOG("msg_id = [%d]", i->msg_id_);
+        RPC_INFO_LOG("msg_id = [%d]", i->msg_id_);
         it->second(i);
       }
     }
@@ -152,8 +150,8 @@ void TcpConnection::Execute() {
 
 void TcpConnection::Write() {
   if (state_ != Connected) {
-    ERRORLOG("write disconnected, client addr[%s],client fd[%d]",
-             peer_addr_->ToString().c_str(), fd_event_->GetFd());
+    RPC_ERROR_LOG("disconnected, peer addr[%s], fd[%d]",
+                  peer_addr_->ToString().c_str(), fd_event_->GetFd());
     return;
   }
 
@@ -171,8 +169,8 @@ void TcpConnection::Write() {
   while (!is_write_all) {
     int write_size = out_buffer_->ReadAble();
     if (write_size == 0) {
-      DEBUGLOG("no data need to send to client [%s]",
-               peer_addr_->ToString().c_str());
+      RPC_DEBUG_LOG("no data need to send to client [%s]",
+                    peer_addr_->ToString().c_str());
       is_write_all = true;
       break;
     }
@@ -180,19 +178,19 @@ void TcpConnection::Write() {
     int rt = write(fd_event_->GetFd(), &out_buffer_->buffer_[read_index],
                    write_size);
     if (rt >= write_size) {
-      DEBUGLOG("write success %d bytes to client [%s]", rt,
-               peer_addr_->ToString().c_str());
+      RPC_DEBUG_LOG("write success %d bytes to client [%s]", rt,
+                    peer_addr_->ToString().c_str());
       is_write_all = true;
       out_buffer_->ModifyReadIndex(rt);
       break;
     }
     if (rt == -1 && errno == EAGAIN) {
       // 发送缓冲区满
-      ERRORLOG("write data error, errno = EAGAIN and rt == -1");
+      RPC_ERROR_LOG("write data error, errno = EAGAIN and rt == -1");
       break;
     } else if (rt == -1) {
-      event_loop_->DeleteEpollEvent(fd_event_.get());
-      state_ = TcpConnection::NotConnected;
+      is_write_all = true;
+      RPC_ERROR_LOG("write data error, errno = Unknown and rt == -1");
       break;
     }
     out_buffer_->ModifyReadIndex(rt);
@@ -213,9 +211,9 @@ void TcpConnection::Write() {
 
 void TcpConnection::Clear() {
   // 服务器处理关闭连接后的清理动作
-  if (state_ == NotConnected) {
-    return;
-  }
+  // if (state_ == NotConnected) {
+  //   return;
+  // }
 
   event_loop_->DeleteEpollEvent(fd_event_.get());
   state_ = NotConnected;

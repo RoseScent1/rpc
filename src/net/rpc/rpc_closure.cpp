@@ -5,7 +5,7 @@
 namespace rocket {
 RpcClosure::RpcClosure(std::function<void()> cb) : callback_(cb) {}
 RpcClosure::~RpcClosure() {
-  // INFOLOG("~RpcClosure");
+  // RPC_INFO_LOG("~RpcClosure");
 }
 void RpcClosure::Run() {
   if (callback_ != nullptr) {

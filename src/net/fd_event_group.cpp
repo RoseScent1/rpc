@@ -13,7 +13,7 @@ FdEventGroup::FdEventGroup(int size) : size_(size) {
   }
 }
 FdEventGroup::~FdEventGroup() {
-  // INFOLOG("~FdEventGroup");
+  // RPC_INFO_LOG("~FdEventGroup");
 }
 
 std::shared_ptr<FdEvent> FdEventGroup::GetFdEvent(int fd) {

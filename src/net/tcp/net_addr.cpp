@@ -16,7 +16,7 @@ IPNetAddr::IPNetAddr(const std::string &ip, uint16_t port)
 IPNetAddr::IPNetAddr(const std::string &addr) {
   int pos = addr.find_first_of(":");
   if (pos == addr.npos) {
-    ERRORLOG("addr error addr = %s", addr.c_str());
+    RPC_ERROR_LOG("addr error addr = %s", addr.c_str());
     return;
   }
   ip_ = addr.substr(0, pos);
@@ -35,7 +35,7 @@ IPNetAddr::IPNetAddr(const sockaddr_in &addr) : addr_(addr) {
 
 
 IPNetAddr::~IPNetAddr(){
-	// INFOLOG("~IPNetAddr");
+	// RPC_INFO_LOG("~IPNetAddr");
 }
 
 sockaddr *IPNetAddr::GetSockAddr() {

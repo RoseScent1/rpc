@@ -21,7 +21,7 @@ int64_t TimerEvent::GetArriveTime() { return arrive_time_; }
 
 void TimerEvent::ResetArriveTime() {
   arrive_time_ = getNowMs() + interval_;
-  DEBUGLOG("successful Reset timer event, will excute at [%lld]",
+  RPC_DEBUG_LOG("successful Reset timer event, will excute at [%lld]",
            arrive_time_);
 }
 

@@ -17,7 +17,7 @@ TcpClient::TcpClient(NetAddr::s_ptr ser_addr) : ser_addr_(ser_addr) {
   event_loop_ = EventLoop::GetCurrentEventLoop();
   fd_ = socket(ser_addr->GetFamily(), SOCK_STREAM, 0);
   if (fd_ == -1) {
-    ERRORLOG("TcpClient::TcpClient() error,failed to create fd");
+    RPC_ERROR_LOG("TcpClient::TcpClient() error,failed to create fd");
     return;
   }
   fd_event_ = FdEventGroup::GetFdEventGRoup()->GetFdEvent(fd_);
@@ -28,7 +28,7 @@ TcpClient::TcpClient(NetAddr::s_ptr ser_addr) : ser_addr_(ser_addr) {
 }
 
 TcpClient::~TcpClient() {
-  // INFOLOG("~TcpClient");
+  // RPC_INFO_LOG("~TcpClient");
   if (fd_ > 0) {
     close(fd_);
   }
@@ -39,7 +39,7 @@ TcpClient::~TcpClient() {
 void TcpClient::Connect(std::function<void()> done) {
   int rt = connect(fd_, ser_addr_->GetSockAddr(), ser_addr_->GetSockLen());
   if (rt == 0) {
-    INFOLOG("connect addr[%s] success", ser_addr_->ToString().c_str());
+    RPC_INFO_LOG("connect addr[%s] success", ser_addr_->ToString().c_str());
     if (done) {
       connection_->Setstate(TcpConnection::Connected);
       done();
@@ -60,7 +60,7 @@ void TcpClient::Connect(std::function<void()> done) {
           err_info_ =
               "connect error sys_error = " + std::string(strerror(errno));
         }
-        ERRORLOG("connect unknow error,errno = %d, error = %s", errno,
+        RPC_ERROR_LOG("connect unknow error,errno = %d, error = %s", errno,
                  strerror(errno));
       });
 
@@ -70,10 +70,10 @@ void TcpClient::Connect(std::function<void()> done) {
         socklen_t len = sizeof(error);
         getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &len);
         if (error == 0) {
-          INFOLOG("connect addr[%s] success", ser_addr_->ToString().c_str());
+          RPC_INFO_LOG("connect addr[%s] success", ser_addr_->ToString().c_str());
           connection_->Setstate(TcpConnection::Connected);
         } else {
-          ERRORLOG("connect error, errno = %d, error = %s", errno,
+          RPC_ERROR_LOG("connect error, errno = %d, error = %s", errno,
                    strerror(errno));
           connect_err_code_ = ERROR_FAILED_CONNECT;
           err_info_ =
@@ -95,7 +95,7 @@ void TcpClient::Connect(std::function<void()> done) {
     } else {
       connect_err_code_ = ERROR_FAILED_CONNECT;
       err_info_ = "connect error sys_error = " + std::string(strerror(errno));
-      ERRORLOG("connect error,errno = %d, error info = %s", errno,
+      RPC_ERROR_LOG("connect error,errno = %d, error info = %s", errno,
                strerror(errno));
       if (done) {
         done();

@@ -21,7 +21,7 @@ RpcChannel::RpcChannel(NetAddr::s_ptr addr)
     : client_(std::make_shared<TcpClient>(addr)) {}
 
 RpcChannel::~RpcChannel() {
-  // INFOLOG("~RpcChannel");
+  // RPC_INFO_LOG("~RpcChannel");
 }
 void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
                             google::protobuf::RpcController *controller,
@@ -32,25 +32,24 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
   auto req_protocol = std::make_shared<TinyPBProtocol>();
 
   if (!is_init_) {
-    ERRORLOG("not init RPC Channel");
+    RPC_ERROR_LOG("not init RPC Channel");
     return;
   }
   auto my_controller = dynamic_cast<RpcController *>(GetController());
   if (my_controller == nullptr) {
-    ERRORLOG("failed CallMethod RpcController convert error");
+    RPC_ERROR_LOG("failed CallMethod RpcController convert error");
     return;
   }
 
   req_protocol->msg_id_ = GenMsgId();
   req_protocol->method_name_ = method->full_name();
-  INFOLOG("msg_id = [%d] call method name [%s]", req_protocol->msg_id_,
-          req_protocol->method_name_.c_str());
+  APP_INFO_LOG("msg_id = [%d] call method name [%s]", req_protocol->msg_id_,
+               req_protocol->method_name_.c_str());
 
   // request 序列化
   if (!request->SerializeToString(&(req_protocol->pb_data_))) {
-    ERRORLOG("msg_id = [%d] , failed to serializer ,error message = %s",
-             req_protocol->msg_id_,
-             request->ShortDebugString().c_str());
+    RPC_ERROR_LOG("msg_id = [%d] , failed to serializer ,error message = %s",
+                  req_protocol->msg_id_, request->ShortDebugString().c_str());
     return;
   }
 
@@ -75,44 +74,43 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     auto my_controller = dynamic_cast<RpcController *>(GetController());
     if (client_->GetErrCode() != 0) {
       my_controller->SetError(client_->GetErrCode(), client_->GetErrInfo());
-      ERRORLOG("msg_id = %d, connect error,error info[%s]",
-               req_protocol->msg_id_,
-               my_controller->GetErrorInfo().c_str());
+      APP_ERROR_LOG("msg_id = %d, connect error,error info[%s]",
+                    req_protocol->msg_id_,
+                    my_controller->GetErrorInfo().c_str());
       return;
     }
-    client_->WriteMessage(req_protocol, [my_controller, req_protocol,
-                                         this](rocket::AbstractProtocol::s_ptr
-                                                   msg_ptr) {
-      INFOLOG("write success msg_id = [%d]", req_protocol->msg_id_);
-      client_->ReadMessage(
-          req_protocol->msg_id_,
-          [my_controller, this](rocket::AbstractProtocol::s_ptr msg_ptr) {
-            // 取消定时器
-            client_->GetEventLoop()->DeleteTimerEvent(timer_event_);
-            auto rsp_protocol =
-                std::dynamic_pointer_cast<rocket::TinyPBProtocol>(msg_ptr);
-            if (!GetResponse()->ParseFromString(rsp_protocol->pb_data_)) {
-              ERRORLOG("response deserializer error");
-              my_controller->SetError(ERROR_FAILED_DESERIALIZE,
-                                      "response deserializer error");
-              return;
-            }
+    client_->WriteMessage(
+        req_protocol, [my_controller, req_protocol,
+                       this](rocket::AbstractProtocol::s_ptr msg_ptr) {
+          RPC_INFO_LOG("write success msg_id = [%d]", req_protocol->msg_id_);
+          client_->ReadMessage(
+              req_protocol->msg_id_,
+              [my_controller, this](rocket::AbstractProtocol::s_ptr msg_ptr) {
+                // 取消定时器
+                client_->GetEventLoop()->DeleteTimerEvent(timer_event_);
+                auto rsp_protocol =
+                    std::dynamic_pointer_cast<rocket::TinyPBProtocol>(msg_ptr);
+                if (!GetResponse()->ParseFromString(rsp_protocol->pb_data_)) {
+                  RPC_ERROR_LOG("response deserializer error");
+                  my_controller->SetError(ERROR_FAILED_DESERIALIZE,
+                                          "response deserializer error");
+                  return;
+                }
 
-            if (rsp_protocol->err_code_ != 0) {
-              ERRORLOG("response has error_code");
-              my_controller->SetError(rsp_protocol->err_code_,
-                                      rsp_protocol->err_info_);
-              return;
-            }
-            INFOLOG(
-                "read req_id = [%d] get response success,call method name= %s",
-                msg_ptr->msg_id_, rsp_protocol->method_name_.c_str());
+                if (rsp_protocol->err_code_ != 0) {
+                  RPC_ERROR_LOG("response has error_code");
+                  my_controller->SetError(rsp_protocol->err_code_,
+                                          rsp_protocol->err_info_);
+                  return;
+                }
+                RPC_INFO_LOG("req_id = [%d] get response success",
+                             msg_ptr->msg_id_);
 
-            if (!controller_->IsCanceled() && GetClosure()) {
-              GetClosure()->Run();
-            }
-          });
-    });
+                if (!controller_->IsCanceled() && GetClosure()) {
+                  GetClosure()->Run();
+                }
+              });
+        });
   });
 }
 

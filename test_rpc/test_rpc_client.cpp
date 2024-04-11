@@ -21,31 +21,27 @@
 #include "rpc_channel.h"
 #include "rpc_closure.h"
 #include "rpc_controller.h"
-#include "rpc_dispatcher.h"
 #include "tcp_client.h"
-#include "tcp_server.h"
-#include "tinypb_protocol.h"
-#include "util.h"
 
 
 void test_channel() {
-  NEWCHANNEL(channel, "127.0.0.1:8086");
-  NEWCONTROLLER(controller);
-  NEWMESSAGE(makeOrderRequest, request);
-  NEWMESSAGE(makeOrderResponse, response);
+  NEW_CHANNEL(channel, "127.0.0.1:8086");
+  NEW_CONTROLLER(controller);
+  NEW_MESSAGE(makeOrderRequest, request);
+  NEW_MESSAGE(makeOrderResponse, response);
   auto closure = std::make_shared<rocket::RpcClosure>([&channel, request,
                                                        response]() {
     if (channel->GetController()->IsCanceled()) {
       auto controller =
           dynamic_cast<rocket::RpcController *>(channel->GetController());
-      INFOLOG("call rpc failed,error code = %d, error info = %s",
+      APP_INFO_LOG("call rpc failed,error code = %d, error info = %s",
               controller->GetErrorCode(), controller->GetErrorInfo().c_str());
     } else {
-      INFOLOG("call rpc success, request:%s ,response:%s",
+      APP_INFO_LOG("call rpc success, request:%s ,response:%s",
               request->ShortDebugString().c_str(),
               response->ShortDebugString().c_str());
     }
-    INFOLOG("now stop event loop");
+    RPC_INFO_LOG("now stop event loop");
     channel->GetClient()->Stop();
   });
   controller->SetTimeOut(1000);
@@ -62,5 +58,6 @@ int main() {
   rocket::Config::SetGlobalConfig("/home/cwl/Desktop/rpc/conf/rocket.xml");
   rocket::Logger::InitGlobalLogger();
   test_channel();
+	rocket::Logger::GetGlobalLogger()->Stop();
   return 0;
 }

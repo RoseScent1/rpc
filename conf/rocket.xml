@@ -2,5 +2,10 @@
 <root>
 	<log>
 	<log_level>Debug</log_level>
+	<file_name>test_log</file_name>
+	<file_path>../log/</file_path>
+	<file_max_line>20000</file_max_line>
+	<interval>500</interval>
+	<file_number>0</file_number>
 	</log>
 </root>

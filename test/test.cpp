@@ -18,7 +18,7 @@
 void test_iothread() {
   int listenfd = socket(AF_INET, SOCK_STREAM, 0);
   if (listenfd == -1) {
-    ERRORLOG("listenfd = -1");
+    RPC_ERROR_LOG("listenfd = -1");
     exit(0);
   }
   sockaddr_in addr;
@@ -27,11 +27,11 @@ void test_iothread() {
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   if (bind(listenfd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == -1) {
-    DEBUGLOG("bind = -1");
+    RPC_DEBUG_LOG("bind = -1");
     exit(0);
   }
   if (listen(listenfd, 100) == -1) {
-    DEBUGLOG("listen = -1");
+    RPC_DEBUG_LOG("listen = -1");
     exit(0);
   }
   rocket::FdEvent event(listenfd);
@@ -40,13 +40,13 @@ void test_iothread() {
     socklen_t len = sizeof(addr);
     int clientfd =
         accept(listenfd, reinterpret_cast<sockaddr *>(&client_addr), &len);
-    DEBUGLOG("successful get client [%s:%d]", inet_ntoa(client_addr.sin_addr),
+    RPC_DEBUG_LOG("successful get client [%s:%d]", inet_ntoa(client_addr.sin_addr),
              ntohs(client_addr.sin_port));
   });
   int i = 0;
 
   auto timer_event = std::make_shared<rocket::TimerEvent>(
-      10000, true, [&i]() { INFOLOG("trigger timer event, count = %d", ++i); });
+      10000, true, [&i]() { RPC_INFO_LOG("trigger timer event, count = %d", ++i); });
 
   rocket::IOThreadGroup iothread_group(2);
   auto io_thread = iothread_group.GetIOThread();
@@ -67,7 +67,7 @@ int main() {
   // rocket::EventLoop *eventloop = new rocket::EventLoop();
   // int listenfd = socket(AF_INET, SOCK_STREAM, 0);
   // if (listenfd == -1) {
-  //   ERRORLOG("listenfd = -1");
+  //   RPC_ERROR_LOG("listenfd = -1");
   //   exit(0);
   // }
   // sockaddr_in addr;
@@ -77,11 +77,11 @@ int main() {
   // addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   // if (bind(listenfd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) ==
   // -1) {
-  //   DEBUGLOG("bind = -1");
+  //   RPC_DEBUG_LOG("bind = -1");
   //   exit(0);
   // }
   // if (listen(listenfd, 100) == -1) {
-  //   DEBUGLOG("listen = -1");
+  //   RPC_DEBUG_LOG("listen = -1");
   //   exit(0);
   // }
   // rocket::FdEvent event(listenfd);
@@ -90,14 +90,14 @@ int main() {
   //   socklen_t len = sizeof(addr);
   //   int clientfd =
   //       accept(listenfd, reinterpret_cast<sockaddr *>(&client_addr), &len);
-  //   DEBUGLOG("successful get client [%s:%d]",
+  //   RPC_DEBUG_LOG("successful get client [%s:%d]",
   //   inet_ntoa(client_addr.sin_addr),
   //            ntohs(client_addr.sin_port));
   // });
   // eventloop->AddEpollEvent(&event);
   // int i = 0;
   // auto timer_event = std::make_shared<rocket::TimerEvent>(
-  //     1000, true, [&i]() { INFOLOG("trigger timer event, count = %d", ++i);
+  //     1000, true, [&i]() { RPC_INFO_LOG("trigger timer event, count = %d", ++i);
   //     });
 
   // eventloop->AddTimerEvent(timer_event);

@@ -22,13 +22,13 @@ namespace rocket {
 
 static int epoll_max_timeout = 10000;
 static int epoll_max_events = 10;
-static thread_local std::unique_ptr<EventLoop> current_eventloop = nullptr;
-// Eventloop
+static thread_local std::unique_ptr<EventLoop> current_event_loop = nullptr;
+// Event_loop
 EventLoop::EventLoop() : is_stop_(false) {
-  // 每个线程只能创建一个eventloop
-  if (current_eventloop != nullptr) {
-    ERRORLOG(
-        "failed to crreate event loop, this thread has created event loop");
+  // 每个线程只能创建一个event_loop
+  if (current_event_loop != nullptr) {
+    RPC_ERROR_LOG(
+        "failed to create event loop, this thread has created event loop");
     exit(0);
   }
   thread_id_ = getThreadid();
@@ -36,16 +36,16 @@ EventLoop::EventLoop() : is_stop_(false) {
   // 创建此线程的epoll文件描述符
   epoll_fd_ = epoll_create(1);
   if (epoll_fd_ == -1) {
-    ERRORLOG(
-        "failed to crreate event loop, epoll_fd  create error, error info[%d]",
+    RPC_ERROR_LOG(
+        "failed to create event loop, epoll_fd  create error, error info[%d]",
         errno);
     exit(0);
   }
   InitWakeupEvent();
   InitTimer();
   AddEpollEvent(wakeup_fd_event_);
-  INFOLOG("successful create wakeup event loop in thread %d", thread_id_);
-  // current_eventloop.reset(this);
+  RPC_INFO_LOG("successful create wakeup event loop in thread %d", thread_id_);
+  // current_event_loop.reset(this);
 }
 
 EventLoop::~EventLoop() {
@@ -59,7 +59,7 @@ EventLoop::~EventLoop() {
     delete timer_;
     timer_ = nullptr;
   }
-  // INFOLOG("~EventLoop");
+  // RPC_INFO_LOG("~EventLoop");
 }
 
 void EventLoop::InitTimer() {
@@ -70,7 +70,7 @@ void EventLoop::InitTimer() {
 void EventLoop::InitWakeupEvent() {
   wakeup_fd_ = eventfd(0, EFD_NONBLOCK);
   if (wakeup_fd_ < 0) {
-    ERRORLOG(
+    RPC_ERROR_LOG(
         "failed to create event loop, wakeup_fd create error, error info[%d]",
         errno);
     exit(0);
@@ -80,9 +80,9 @@ void EventLoop::InitWakeupEvent() {
     char buff[8];
     while (read(wakeup_fd_, buff, 8) != -1 && errno != EAGAIN)
       ;
-    DEBUGLOG("read full bytes from wakeup fd[%d]", wakeup_fd_);
+    RPC_DEBUG_LOG("read full bytes from wakeup fd[%d]", wakeup_fd_);
   });
-  DEBUGLOG("create wake up fd, fd = %d", wakeup_fd_);
+  RPC_DEBUG_LOG("create wake up fd, fd = %d", wakeup_fd_);
 }
 
 void EventLoop::AddTimerEvent(TimerEvent::s_ptr event) {
@@ -112,11 +112,11 @@ void EventLoop::Loop() {
     for (int i = 0; i < epoll_max_events; ++i) {
       result_events[i].events = 0;
     }
-    DEBUGLOG("begin to wait");
+    RPC_DEBUG_LOG("begin to wait");
     int rt = epoll_wait(epoll_fd_, result_events, epoll_max_events, timeout);
-    DEBUGLOG("end  epoll_wait rt= %d", rt);
+    RPC_DEBUG_LOG("end  epoll_wait rt= %d", rt);
     if (rt < 0) {
-      ERRORLOG("epoll_wait error, error info[%s]", strerror(errno));
+      RPC_ERROR_LOG("epoll_wait error, error info[%s]", strerror(errno));
     } else {
       for (int i = 0; i < rt; ++i) {
         auto trigger_event = result_events[i];
@@ -126,24 +126,24 @@ void EventLoop::Loop() {
         }
         if (trigger_event.events & EPOLLERR) {
           DeleteEpollEvent(fd_event);
-          DEBUGLOG("fd[%d] trigger EPOLLERR", fd_event->GetFd());
+          RPC_DEBUG_LOG("fd[%d] trigger EPOLLERR", fd_event->GetFd());
           if (fd_event->Handler(FdEvent::ERR_EVENT) != nullptr) {
             AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
           }
         }
         if (trigger_event.events & EPOLLHUP) {
           DeleteEpollEvent(fd_event);
-          DEBUGLOG("fd[%d] trigger EPOLLHUP", fd_event->GetFd());
+          RPC_DEBUG_LOG("fd[%d] trigger EPOLLHUP", fd_event->GetFd());
           if (fd_event->Handler(FdEvent::ERR_EVENT) != nullptr) {
             AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
           }
         }
         if (trigger_event.events & EPOLLIN) {
-          DEBUGLOG("fd[%d] trigger EPOLLIN", fd_event->GetFd())
+          RPC_DEBUG_LOG("fd[%d] trigger EPOLLIN", fd_event->GetFd())
           AddTask(fd_event->Handler(FdEvent::IN_EVENT));
         }
         if (trigger_event.events & EPOLLOUT) {
-          DEBUGLOG("fd[%d] trigger EPOLLOUT", fd_event->GetFd())
+          RPC_DEBUG_LOG("fd[%d] trigger EPOLLOUT", fd_event->GetFd())
           AddTask(fd_event->Handler(FdEvent::OUT_EVENT));
         }
       }
@@ -152,7 +152,7 @@ void EventLoop::Loop() {
 }
 
 void EventLoop::WakeUp() {
-  INFOLOG("wake up fd=%d", wakeup_fd_);
+  RPC_INFO_LOG("wake up fd=%d", wakeup_fd_);
   wakeup_fd_event_->WakeUp();
 }
 
@@ -165,13 +165,13 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
       op = EPOLL_CTL_MOD;
     }
     epoll_event tmp = event->GetEpollEvent();
-    INFOLOG("add event events[%d],fd = %d", (int)tmp.events, event->GetFd());
+    RPC_INFO_LOG("add event events[%d],fd = %d", (int)tmp.events, event->GetFd());
     if ((epoll_ctl(epoll_fd_, op, event->GetFd(), &tmp)) == -1) {
-      ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] =%s",
+      RPC_ERROR_LOG("failed epoll_ctl when add fd %d, error info[%d] =%s",
                event->GetFd(), errno, strerror(errno));
     }
     listen_fds_.insert(event->GetFd());
-    DEBUGLOG("add event success, fd[%d]", event->GetFd());
+    RPC_DEBUG_LOG("add event success, fd[%d]", event->GetFd());
   } else {
     auto cb = [this, event]() {
       int op = EPOLL_CTL_ADD;
@@ -179,13 +179,13 @@ void EventLoop::AddEpollEvent(FdEvent *event) {
         op = EPOLL_CTL_MOD;
       }
       epoll_event tmp = event->GetEpollEvent();
-      INFOLOG("add event events[%d],fd = %d", (int)tmp.events, event->GetFd());
+      RPC_INFO_LOG("add event events[%d],fd = %d", (int)tmp.events, event->GetFd());
       if ((epoll_ctl(epoll_fd_, op, event->GetFd(), &tmp)) == -1) {
-        ERRORLOG("failed epoll_ctl when add fd %d, error info[%d] = ",
+        RPC_ERROR_LOG("failed epoll_ctl when add fd %d, error info[%d] = ",
                  event->GetFd(), errno, strerror(errno));
       }
       listen_fds_.insert(event->GetFd());
-      DEBUGLOG("add event success, fd[%d]", event->GetFd());
+      RPC_DEBUG_LOG("add event success, fd[%d]", event->GetFd());
     };
     AddTask(cb);
   };
@@ -200,12 +200,12 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
     epoll_event tmp = event->GetEpollEvent();
 
     if ((epoll_ctl(epoll_fd_, op, event->GetFd(), &tmp)) == -1) {
-      ERRORLOG("failed epoll_ctl when delete fd %d, error info[%d] = ",
+      RPC_ERROR_LOG("failed epoll_ctl when delete fd %d, error info[%d] = ",
                event->GetFd(), errno, strerror(errno));
     }
     listen_fds_.erase(event->GetFd());
     close(event->GetFd());
-    DEBUGLOG("delete event success, fd[%d]", event->GetFd());
+    RPC_DEBUG_LOG("delete event success, fd[%d]", event->GetFd());
   } else {
     auto cb = [this, event] {
       if (listen_fds_.find(event->GetFd()) == listen_fds_.end()) {
@@ -214,11 +214,11 @@ void EventLoop::DeleteEpollEvent(FdEvent *event) {
       int op = EPOLL_CTL_DEL;
       epoll_event tmp = event->GetEpollEvent();
       if ((epoll_ctl(epoll_fd_, op, event->GetFd(), &tmp)) == -1) {
-        ERRORLOG("failed epoll_ctl when delete fd %d, error info[%d] = ",
+        RPC_ERROR_LOG("failed epoll_ctl when delete fd %d, error info[%d] = ",
                  event->GetFd(), errno, strerror(errno));
       }
       listen_fds_.erase(event->GetFd());
-      DEBUGLOG("delete event success, fd[%d]", event->GetFd());
+      RPC_DEBUG_LOG("delete event success, fd[%d]", event->GetFd());
 
       close(event->GetFd());
     };
@@ -237,9 +237,9 @@ void EventLoop::AddTask(std::function<void()> callback, bool wakeup) {
 }
 
 EventLoop *EventLoop::GetCurrentEventLoop() {
-  if (current_eventloop == nullptr) {
-    current_eventloop.reset(new EventLoop());
+  if (current_event_loop == nullptr) {
+    current_event_loop.reset(new EventLoop());
   }
-  return current_eventloop.get();
+  return current_event_loop.get();
 }
 } // namespace rocket

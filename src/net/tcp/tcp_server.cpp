@@ -14,7 +14,8 @@ namespace rocket {
 
 TcpServer::TcpServer(NetAddr::s_ptr addr) : addr_(addr), client_count_(0) {
   init();
-  INFOLOG("rocket RPC tcpServer listen sucess on %s", addr->ToString().c_str());
+  RPC_INFO_LOG("rocket RPC tcpServer listen sucess on %s",
+               addr->ToString().c_str());
 }
 
 TcpServer::~TcpServer() {
@@ -42,7 +43,14 @@ void TcpServer::OnAccept() {
       io_thread->GetEventloop(), client_fd, 128, client_addr);
   connection->Setstate(TcpConnection::TcpState::Connected);
   connections_.insert(connection);
-  INFOLOG("TcpServer success get client, fd=%d", client_fd);
+  RPC_INFO_LOG("TcpServer success get client, fd=%d", client_fd);
+  for (auto it = connections_.begin(); it != connections_.end();) {
+    if ((*it)->GetState() == TcpConnection::NotConnected) {
+      it = connections_.erase(it);
+    } else {
+      ++it;
+    }
+  }
 }
 
 void TcpServer::init() {

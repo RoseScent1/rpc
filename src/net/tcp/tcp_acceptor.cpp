@@ -14,32 +14,32 @@
 namespace rocket {
 TcpAcceptor::TcpAcceptor(NetAddr::s_ptr addr) : addr_(addr) {
   if (!addr->CheckValid()) {
-    ERRORLOG("addr is invalid %s", addr_->ToString().c_str());
+    RPC_ERROR_LOG("addr is invalid %s", addr_->ToString().c_str());
     exit(0);
   }
   family_ = addr->GetFamily();
 
   listen_fd_ = socket(family_, SOCK_STREAM, 0);
   if (listen_fd_ < 0) {
-    ERRORLOG("listen_fd creat false   fd = %d", listen_fd_);
+    RPC_ERROR_LOG("listen_fd creat false   fd = %d", listen_fd_);
     exit(0);
   }
 
   int val = 1;
   if (setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val)) !=
       0) {
-    ERRORLOG("set sockopt REUSEADDR error errno = %d, %s", errno,
+    RPC_ERROR_LOG("set sockopt REUSEADDR error errno = %d, %s", errno,
              strerror(errno));
   }
 
   socklen_t len = addr_->GetSockLen();
   if (bind(listen_fd_, addr_->GetSockAddr(), len) != 0) {
-    ERRORLOG("bind error errno %d, %s", errno, strerror(errno));
+    RPC_ERROR_LOG("bind error errno %d, %s", errno, strerror(errno));
     exit(0);
   }
 
   if (listen(listen_fd_, 1000) != 0) {
-    ERRORLOG("listen error errno %d, %s", errno, strerror(errno));
+    RPC_ERROR_LOG("listen error errno %d, %s", errno, strerror(errno));
     exit(0);
   }
 }
@@ -55,12 +55,12 @@ std::pair<int, NetAddr::s_ptr> TcpAcceptor::Accept() {
     int client_fd =
         accept(listen_fd_, reinterpret_cast<sockaddr *>(&client_addr), &len);
     if (client_fd < 0) {
-      ERRORLOG("accept error errno %d, %s", errno, strerror(errno));
+      RPC_ERROR_LOG("accept error errno %d, %s", errno, strerror(errno));
 			return {};
     }
     //客户端addr,用于返回值
     IPNetAddr::s_ptr addr = std::make_shared<IPNetAddr>(client_addr);
-    INFOLOG("A client have accepted ,client addr=%s",
+    RPC_INFO_LOG("A client have accepted ,client addr=%s",
             IPNetAddr(client_addr).ToString().c_str());
     return {client_fd, addr};
   } else {

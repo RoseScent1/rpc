@@ -4,7 +4,7 @@
 
 namespace rocket {
 RpcController::~RpcController() {
-	// INFOLOG("~RpcController");
+	// RPC_INFO_LOG("~RpcController");
 }
 void RpcController::Reset() {
   error_code_ = 0;

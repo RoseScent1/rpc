@@ -8,14 +8,14 @@
 #include <memory>
 namespace rocket {
 
-#define NEWCHANNEL(var_name, addr)                                             \
+#define NEW_CHANNEL(var_name, addr)                                             \
   auto var_name = std::make_shared<rocket::RpcChannel>(                        \
       std::make_shared<rocket::IPNetAddr>(addr))
 
-#define NEWMESSAGE(type, var_name)                                             \
+#define NEW_MESSAGE(type, var_name)                                             \
   std::shared_ptr<type> var_name = std::make_shared<type>()
 
-#define NEWCONTROLLER(var_name)                                                \
+#define NEW_CONTROLLER(var_name)                                                \
   auto var_name = std::make_shared<rocket::RpcController>()
 
 #define CALLRPC(controller_name, request_name, response_name, closure_name,    \
