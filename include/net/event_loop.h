@@ -8,6 +8,7 @@
 #include <sched.h>
 #include <set>
 #include <sys/epoll.h>
+#include <thread>
 namespace rocket {
 class EventLoop {
 public:
@@ -32,7 +33,7 @@ private:
 	
   bool is_stop_{false};
 
-  pid_t thread_id_;
+  int32_t thread_id_;
 
   int epoll_fd_;
   int wakeup_fd_;

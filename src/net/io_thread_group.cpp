@@ -12,7 +12,7 @@ IOThreadGroup::IOThreadGroup(int size) : size_(size), index_(-1) {
 }
 
 IOThreadGroup::~IOThreadGroup() {
-
+		// std::cout << "析构IOThreadGroup" << std::endl;
 	// RPC_INFO_LOG("~IOThreadGroup");
   // for(auto i : iothread_groups_) {
   // 	i->Join();

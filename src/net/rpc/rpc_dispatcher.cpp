@@ -97,7 +97,7 @@ void RpcDispatcher::Dispatch(AbstractProtocol::s_ptr request,
   }
   rsp_protocol->err_code_ = 0;
 
-  APP_ERROR_LOG("msg_id = [%d], call method name = [%s], [wait to send], "
+  APP_INFO_LOG("msg_id = [%d], call method name = [%s], [wait to send], "
                 "request:[%s], response:[%s]",
                 req_protocol->msg_id_, method_full_name.c_str(),
                 req_msg->ShortDebugString().c_str(),

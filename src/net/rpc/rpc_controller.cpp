@@ -4,7 +4,8 @@
 
 namespace rocket {
 RpcController::~RpcController() {
-	// RPC_INFO_LOG("~RpcController");
+  // std::cout << "析构RpcController" << std::endl;
+  // RPC_INFO_LOG("~RpcController");
 }
 void RpcController::Reset() {
   error_code_ = 0;
@@ -35,7 +36,7 @@ void RpcController::NotifyOnCancel(google::protobuf::Closure *callback) {}
 void RpcController::SetError(int32_t error_code, const std::string error_info) {
   error_code_ = error_code;
   error_info_ = error_info;
-	is_failed_ = true;
+  is_failed_ = true;
 }
 
 int32_t RpcController::GetErrorCode() { return error_code_; }
@@ -46,11 +47,8 @@ void RpcController::SetMsgId(const uint32_t id) { msg_id_ = id; }
 
 uint32_t RpcController::GetMsgId() { return msg_id_; }
 
-
-
 void RpcController::SetTimeOut(int timeout) { timeout_ = timeout; }
 
 int RpcController::GetTimeOut() { return timeout_; }
-
 
 } // namespace rocket

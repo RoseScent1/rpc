@@ -13,6 +13,7 @@
 namespace rocket {
 
 TinyPBCoder::~TinyPBCoder() {
+				// std::cout << "析构TinyPBCoder" << std::endl;
   // RPC_INFO_LOG("~TinyPBCoder");
 }
 

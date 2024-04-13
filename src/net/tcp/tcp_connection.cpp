@@ -39,8 +39,8 @@ TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size,
   }
 }
 TcpConnection::~TcpConnection() {
+			// std::cout << "析构TcpConnection" << std::endl;
   // RPC_INFO_LOG("~TcpConnection ");
-  close(fd_event_->GetFd());
 }
 
 void TcpConnection::Setstate(const TcpState state) { state_ = state; }
@@ -128,7 +128,6 @@ void TcpConnection::Execute() {
                    peer_addr_->ToString().c_str());
       auto message = std::make_shared<TinyPBProtocol>();
 
-
       RpcDispatcher::GetRpcDispatcher()->Dispatch(i, message);
 
       replay_message.emplace_back(message);
@@ -214,7 +213,7 @@ void TcpConnection::Clear() {
   // if (state_ == NotConnected) {
   //   return;
   // }
-
+  RPC_DEBUG_LOG("TcpConnection Clear,fd = %d", fd_event_->GetFd());
   event_loop_->DeleteEpollEvent(fd_event_.get());
   state_ = NotConnected;
 }

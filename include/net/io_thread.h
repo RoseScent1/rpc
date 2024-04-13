@@ -17,7 +17,7 @@ public:
   static void Main(IOThread *thread);
 
 private:
-  pid_t thread_id_;
+  int32_t thread_id_;
   std::thread thread_;
   EventLoop *event_loop_;
   sem_t sem_init_;

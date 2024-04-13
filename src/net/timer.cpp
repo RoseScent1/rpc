@@ -25,7 +25,7 @@ Timer::Timer() {
 }
 
 Timer::~Timer() {
-
+  // std::cout << "析构Timer" << std::endl;
   // RPC_INFO_LOG("~Timer");
 }
 
@@ -52,7 +52,7 @@ void Timer::ResetArriveTime() {
   int rt = timerfd_settime(fd_, 0, &value, NULL);
   if (rt != 0) {
     RPC_ERROR_LOG("timerfd_settime error, errno = %d, %s", errno,
-             std::strerror(errno));
+                  std::strerror(errno));
   }
   RPC_DEBUG_LOG("fd = %d, timer reset to %lld", fd_, now_time + interval);
 }

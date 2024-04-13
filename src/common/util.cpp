@@ -28,4 +28,4 @@ uint32_t getInt32FromNetByte(const char *buf) {
 
 static thread_local uint32_t msg_id = 0;
 uint32_t GenMsgId() { return msg_id++; }
-} // namespace rocket
+}

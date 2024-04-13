@@ -19,6 +19,7 @@ public:
 
   FdEvent(int fd);
   FdEvent();
+	void Clear();
   ~FdEvent();
   std::function<void()> Handler(TriggerEvent event_type);
   void Listen(TriggerEvent event_type, std::function<void()> callback);

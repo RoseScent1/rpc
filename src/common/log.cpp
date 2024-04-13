@@ -21,47 +21,68 @@
 namespace rocket {
 static std::unique_ptr<Logger> g_logger = nullptr;
 
-Logger *Logger::GetGlobalLogger() { return g_logger.get(); }
+Logger *Logger::GetGlobalLogger() {
+  if (g_logger == nullptr) {
+
+    g_logger.reset(new Logger());
+    g_logger->Init();
+  }
+  return g_logger.get();
+}
 void Logger::InitGlobalLogger() {
   g_logger.reset(new Logger());
   g_logger->Init();
 }
 
 Logger::Logger(){};
-
+Logger::~Logger() {
+	//  std::cout << "析构Logger" << std::endl;
+ }
 void Logger::Init() {
   auto config = Config::GetGlobalConfig();
   log_level_ = StringToLogLevel(config->log_level_);
-  rpc_sync_logger_ = std::make_unique<SyncLogger>(
-      config->file_name_, config->file_path_, std::string("rpc"),
-      config->file_max_line_, config->file_number_);
-  app_sync_logger_ = std::make_unique<SyncLogger>(
-      config->file_name_, config->file_path_, std::string("app"),
-      config->file_max_line_, config->file_number_);
+  flag_ = config->flag_;
+  if (config->flag_) {
+    rpc_sync_logger_ = std::make_unique<SyncLogger>(
+        config->file_name_, config->file_path_, std::string("rpc"),
+        config->file_max_line_, config->file_number_);
+    app_sync_logger_ = std::make_unique<SyncLogger>(
+        config->file_name_, config->file_path_, std::string("app"),
+        config->file_max_line_, config->file_number_);
 
-  time_event_ = std::make_shared<TimerEvent>(config->interval_, true,
-                                             std::bind(&Logger::Async, this));
-  EventLoop::GetCurrentEventLoop()->AddTimerEvent(time_event_);
+    time_event_ = std::make_shared<TimerEvent>(config->interval_, true,
+                                               std::bind(&Logger::Async, this));
+    EventLoop::GetCurrentEventLoop()->AddTimerEvent(time_event_);
+  }
 }
 void Logger::PushRpcLog(const std::string &msg) {
-  rpc_latch.lock();
-  rpc_buffer_.push_back(msg);
-  rpc_latch.unlock();
+  if (flag_) {
+    std::unique_lock<std::mutex> lock(rpc_latch);
+    rpc_buffer_.push_back(msg);
+
+  } else {
+    // std::cout << msg << std::endl;
+  }
 }
 
 void Logger::PushAppLog(const std::string &msg) {
-  app_latch.lock();
-  app_buffer_.push_back(msg);
-  app_latch.unlock();
+  if (flag_) {
+    std::unique_lock<std::mutex> lock(app_latch);
+    app_buffer_.push_back(msg);
+  } else {
+    std::cout << msg << std::endl;
+  }
 }
 
 void Logger::Stop() {
-  EventLoop::GetCurrentEventLoop()->DeleteTimerEvent(time_event_);
-  PushRpcLog("Logger Stop\n");
-  PushAppLog("Logger Stop\n");
-  Async();
-  rpc_sync_logger_->Stop();
-  app_sync_logger_->Stop();
+  if (flag_ == true) {
+    EventLoop::GetCurrentEventLoop()->DeleteTimerEvent(time_event_);
+    PushRpcLog("Logger Stop\n");
+    PushAppLog("Logger Stop\n");
+    Async();
+    rpc_sync_logger_->Stop();
+    app_sync_logger_->Stop();
+  }
 }
 
 void Logger::Async() {
@@ -105,6 +126,7 @@ auto StringToLogLevel(const std::string &log_level) -> LogLevel {
   return LogLevel::Unknow;
 }
 std::string LogEvent::ToString() {
+  latch_.lock();
   timeval now_time;
 
   gettimeofday(&now_time, nullptr);
@@ -118,9 +140,9 @@ std::string LogEvent::ToString() {
   std::string time_str(buf);
   int ms = now_time.tv_usec / 1000;
   time_str = time_str + "." + std::to_string(ms);
-
   thread_id_ = getThreadid();
   pid_ = getPid();
+  latch_.unlock();
 
   std::stringstream ss;
   ss << "[" << LogLevelToString(level_) << "]\t[" << time_str << "]\t["
@@ -140,6 +162,7 @@ SyncLogger::SyncLogger(const std::string &file_name,
 }
 
 SyncLogger::~SyncLogger() {
+  // std::cout << "析构SyncLogger" << std::endl;
   Stop();
   sem_destroy(&sem_);
 }
@@ -176,7 +199,6 @@ void SyncLogger::Write() {
     }
   };
   ss << file_path_ << log_type_;
-  std::filesystem::create_directories(ss.str());
   ss << '/' << file_name_ << ':';
 
   while (true) {
@@ -221,6 +243,5 @@ void SyncLogger::Write() {
     ofs_.flush();
   }
 }
-
 std::string formatString(const char *format) { return format; }
 } // namespace rocket

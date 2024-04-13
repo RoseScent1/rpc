@@ -24,10 +24,18 @@ FdEvent::FdEvent(int fd) : fd_(fd) {
 }
 FdEvent::FdEvent() { memset(&listen_event_, 0, sizeof(listen_event_)); }
 FdEvent::~FdEvent() {
+		// std::cout << "析构FdEvent" << std::endl;
   if (fd_ > 0) {
     close(fd_);
   }
   // RPC_INFO_LOG("~FdEvent");
+}
+
+void FdEvent::Clear() {
+  memset(&listen_event_, 0, sizeof(listen_event_));
+  read_callback_ = nullptr;
+  write_callback_ = nullptr;
+  err_callback_ = nullptr;
 }
 std::function<void()> FdEvent::Handler(TriggerEvent event_type) {
   if (event_type == TriggerEvent::IN_EVENT) {
@@ -63,6 +71,7 @@ void FdEvent::Cancel(TriggerEvent event_type) {
 WakeUpFdEvent::WakeUpFdEvent(int fd) : FdEvent(fd) {}
 
 WakeUpFdEvent::~WakeUpFdEvent(){
+		// std::cout << "析构WakeUpFdEvent" << std::endl;
     // RPC_INFO_LOG("~WakeUpFdEvent");
 };
 

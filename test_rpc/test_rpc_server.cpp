@@ -1,31 +1,20 @@
 
 #include "config.h"
+#include "fd_event_group.h"
 #include "log.h"
-
-#include <arpa/inet.h>
-#include <asm-generic/socket.h>
-#include <cstring>
-#include <fcntl.h>
-#include <functional>
-#include <google/protobuf/service.h>
-#include <iostream>
-#include <memory>
-#include <netinet/in.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
 #include "net_addr.h"
 #include "order.pb.h"
 #include "rpc_dispatcher.h"
 #include "tcp_server.h"
+#include <google/protobuf/service.h>
+#include <iostream>
+#include <memory>
 class OrderImpl : public Order {
 public:
   void makeOrder(google::protobuf::RpcController *controller,
                  const ::makeOrderRequest *request,
                  ::makeOrderResponse *response,
                  ::google::protobuf::Closure *done) override {
-    sleep(3);
     if (request->price() < 10) {
       response->set_ret_code(-1);
       response->set_res_info("not enough money");
@@ -35,21 +24,30 @@ public:
                  request->goods().c_str());
     response->set_order_id("123456");
   }
+  void sumOrder(google::protobuf::RpcController *controller,
+                const ::sumRequest *request, ::valResponse *response,
+                ::google::protobuf::Closure *done) override {
+    response->set_val(request->a() + request->b());
+    response->set_res_info(666);
+  }
 };
 
-void test() {
-  std::string s("127.0.0.1:8086");
-  auto a = std::make_shared<rocket::IPNetAddr>(s);
-  rocket::TcpServer tcp_server(a);
-  tcp_server.start();
-}
-
-int main() {
+int main(int argc, char *argv[]) {
+  // if (argc != 2) {
+  //   std::cout << "Start like this : ./rpc_server /home/conf/rocket.xml"
+  //             << std::endl;
+  // 	return 1;
+  // }
+// 初始化全局类
   rocket::Config::SetGlobalConfig("/home/cwl/Desktop/rpc/conf/rocket.xml");
   rocket::Logger::InitGlobalLogger();
+	rocket::FdEventGroup::GetFdEventGRoup();
 
   auto service = std::make_shared<OrderImpl>();
   rocket::RpcDispatcher::GetRpcDispatcher()->RegisterService(service);
-  test();
+  auto a = std::make_shared<rocket::IPNetAddr>(
+      "127.0.0.1", rocket::Config::GetGlobalConfig()->port_);
+  rocket::TcpServer tcp_server(a);
+  tcp_server.start();
   return 0;
 }

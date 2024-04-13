@@ -21,7 +21,7 @@ RpcChannel::RpcChannel(NetAddr::s_ptr addr)
     : client_(std::make_shared<TcpClient>(addr)) {}
 
 RpcChannel::~RpcChannel() {
-  // RPC_INFO_LOG("~RpcChannel");
+  // std::cout << "析构RpcChannel" << std::endl;
 }
 void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
                             google::protobuf::RpcController *controller,
@@ -35,7 +35,7 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     RPC_ERROR_LOG("not init RPC Channel");
     return;
   }
-  auto my_controller = dynamic_cast<RpcController *>(GetController());
+  auto my_controller = dynamic_cast<RpcController *>(controller_.get());
   if (my_controller == nullptr) {
     RPC_ERROR_LOG("failed CallMethod RpcController convert error");
     return;

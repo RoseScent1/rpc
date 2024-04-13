@@ -6,6 +6,7 @@ const char TinyPBProtocol::PB_START = 0x02;
 const char TinyPBProtocol::PB_END = 0x03;
 
 TinyPBProtocol::~TinyPBProtocol() {
+				// std::cout << "析构TinyPBProtocol" << std::endl;
 	// RPC_INFO_LOG("~TinyPBProtocol");
 }
 void TinyPBProtocol::SetErrInfo(int32_t err_code, const char *err_info) {

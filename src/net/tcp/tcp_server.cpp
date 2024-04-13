@@ -1,4 +1,5 @@
 #include "tcp_server.h"
+#include "config.h"
 #include "event_loop.h"
 #include "fd_event.h"
 #include "fd_event_group.h"
@@ -19,6 +20,7 @@ TcpServer::TcpServer(NetAddr::s_ptr addr) : addr_(addr), client_count_(0) {
 }
 
 TcpServer::~TcpServer() {
+  // std::cout << "析构TcpServer" << std::endl;
   if (main_event_loop_) {
     delete main_event_loop_;
     main_event_loop_ = nullptr;
@@ -59,7 +61,7 @@ void TcpServer::init() {
 
   main_event_loop_ = EventLoop::GetCurrentEventLoop();
 
-  io_thread_group_ = new IOThreadGroup(2);
+  io_thread_group_ = new IOThreadGroup(Config::GetGlobalConfig()->io_thread_);
   listen_fd_event_ =
       FdEventGroup::GetFdEventGRoup()->GetFdEvent(acceptor_->GetListenFd());
   listen_fd_event_->Listen(FdEvent::IN_EVENT,

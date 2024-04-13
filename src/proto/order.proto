@@ -1,0 +1,26 @@
+syntax = "proto3";
+option cc_generic_services = true;
+
+message makeOrderRequest {
+	int32 price = 1;
+	string goods = 2;
+}
+
+message makeOrderResponse {
+	int32 ret_code = 1;
+	string res_info = 2;
+	string order_id = 3;
+}
+
+message sumRequest {
+	int32 a = 1;
+	int32 b = 2;
+}
+message valResponse {
+	int32 val = 1;
+	int32 res_info = 2;
+}
+service Order {
+	rpc makeOrder (makeOrderRequest) returns (makeOrderResponse);
+	rpc sumOrder (sumRequest)	returns (valResponse);
+}

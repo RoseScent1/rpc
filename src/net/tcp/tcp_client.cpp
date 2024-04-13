@@ -21,6 +21,8 @@ TcpClient::TcpClient(NetAddr::s_ptr ser_addr) : ser_addr_(ser_addr) {
     return;
   }
   fd_event_ = FdEventGroup::GetFdEventGRoup()->GetFdEvent(fd_);
+  RPC_DEBUG_LOG("TcpClient fd = [%d],get fd_event.fd = [%d]", fd_,
+                fd_event_->GetFd());
   fd_event_->SetNonBlock();
   connection_ = std::make_shared<TcpConnection>(
       event_loop_, fd_, 128, ser_addr, TcpConnection::ConnectionType::Client);
@@ -28,9 +30,12 @@ TcpClient::TcpClient(NetAddr::s_ptr ser_addr) : ser_addr_(ser_addr) {
 }
 
 TcpClient::~TcpClient() {
+			// std::cout << "析构TcpClient" << std::endl;
   // RPC_INFO_LOG("~TcpClient");
   if (fd_ > 0) {
+		event_loop_->DeleteEpollEvent(fd_event_.get());
     close(fd_);
+    RPC_DEBUG_LOG("```````close fd %d `````", fd_);
   }
 }
 
@@ -39,10 +44,12 @@ TcpClient::~TcpClient() {
 void TcpClient::Connect(std::function<void()> done) {
   int rt = connect(fd_, ser_addr_->GetSockAddr(), ser_addr_->GetSockLen());
   if (rt == 0) {
-    RPC_INFO_LOG("connect addr[%s] success", ser_addr_->ToString().c_str());
+    RPC_INFO_LOG("connect addr[%s] success, local fd = %d",
+                 ser_addr_->ToString().c_str(), fd_);
     if (done) {
       connection_->Setstate(TcpConnection::Connected);
       done();
+      // event_loop_->DeleteEpollEvent(fd_event_.get());
     }
     event_loop_->Loop();
   } else if (rt == -1) {
@@ -61,7 +68,7 @@ void TcpClient::Connect(std::function<void()> done) {
               "connect error sys_error = " + std::string(strerror(errno));
         }
         RPC_ERROR_LOG("connect unknow error,errno = %d, error = %s", errno,
-                 strerror(errno));
+                      strerror(errno));
       });
 
       // epoll监听可写事件,判断错误码
@@ -70,11 +77,12 @@ void TcpClient::Connect(std::function<void()> done) {
         socklen_t len = sizeof(error);
         getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &len);
         if (error == 0) {
-          RPC_INFO_LOG("connect addr[%s] success", ser_addr_->ToString().c_str());
+          RPC_INFO_LOG("connect addr[%s] success",
+                       ser_addr_->ToString().c_str());
           connection_->Setstate(TcpConnection::Connected);
         } else {
           RPC_ERROR_LOG("connect error, errno = %d, error = %s", errno,
-                   strerror(errno));
+                        strerror(errno));
           connect_err_code_ = ERROR_FAILED_CONNECT;
           err_info_ =
               "connect error, sys_error = " + std::string(strerror(errno));
@@ -83,6 +91,7 @@ void TcpClient::Connect(std::function<void()> done) {
 
         if (done) {
           done();
+          // event_loop_->DeleteEpollEvent(fd_event_.get());
         }
       });
       event_loop_->AddEpollEvent(fd_event_.get());
@@ -90,13 +99,14 @@ void TcpClient::Connect(std::function<void()> done) {
     } else if (errno == EISCONN) {
       if (done) {
         done();
+        // event_loop_->DeleteEpollEvent(fd_event_.get());
       }
       event_loop_->Loop();
     } else {
       connect_err_code_ = ERROR_FAILED_CONNECT;
       err_info_ = "connect error sys_error = " + std::string(strerror(errno));
       RPC_ERROR_LOG("connect error,errno = %d, error info = %s", errno,
-               strerror(errno));
+                    strerror(errno));
       if (done) {
         done();
       }

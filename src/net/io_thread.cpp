@@ -9,18 +9,19 @@ namespace rocket {
 IOThread::IOThread() {
   if (sem_init(&sem_init_, 0, 0) != 0) {
     RPC_ERROR_LOG("sem init error");
-    exit(0);
+    exit(4);
   }
   if (sem_init(&sem_start_, 0, 0) != 0) {
     RPC_ERROR_LOG("sem init error");
-    exit(0);
+    exit(5);
   }
   thread_ = std::thread(Main, this);
   sem_wait(&sem_init_);
-  RPC_DEBUG_LOG("IOThread create successful threadId=%d", thread_id_);
+  RPC_DEBUG_LOG("IOThread create successful threadId = %d", thread_id_);
 }
 
 IOThread::~IOThread() {
+			// std::cout << "析构IOThread" << std::endl;
   // RPC_INFO_LOG("IOThread deleted threadid = %d", thread_id_);
   event_loop_->Stop();
   sem_destroy(&sem_init_);
@@ -44,9 +45,9 @@ void IOThread::Main(IOThread *thread) {
   thread->thread_id_ = getThreadid();
   sem_post(&(thread->sem_init_));
   sem_wait(&thread->sem_start_);
-  RPC_DEBUG_LOG("start IOthread eventloop threadid = %d", thread->thread_id_);
+  RPC_DEBUG_LOG("start IOthread eventloop threadid = %ld", thread->thread_id_);
   thread->event_loop_->Loop();
-  RPC_DEBUG_LOG("end IOthread threadid = %d", thread->thread_id_);
+  RPC_DEBUG_LOG("end IOthread threadid = %ld", thread->thread_id_);
 }
 
 } // namespace rocket

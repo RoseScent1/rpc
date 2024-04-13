@@ -4,8 +4,12 @@
 	<log_level>Debug</log_level>
 	<file_name>test_log</file_name>
 	<file_path>../log/</file_path>
-	<file_max_line>20000</file_max_line>
+	<file_max_line>100000</file_max_line>
 	<interval>500</interval>
 	<file_number>0</file_number>
 	</log>
+	<server>
+	<port>8086</port>
+	<io_thread>2</io_thread> 
+	</server>
 </root>

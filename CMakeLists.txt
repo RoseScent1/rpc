@@ -11,9 +11,8 @@ include_directories(
 				${PROJECT_SOURCE_DIR}/include/net/tcp
 				${PROJECT_SOURCE_DIR}/include/net/coder
 				${PROJECT_SOURCE_DIR}/include/net/rpc
-
+				${PROJECT_SOURCE_DIR}/src/proto
 				)
 
-add_subdirectory(src)
-add_subdirectory(test)
 add_subdirectory(test_rpc)
+add_subdirectory(src)

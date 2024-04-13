@@ -33,9 +33,9 @@ IPNetAddr::IPNetAddr(const sockaddr_in &addr) : addr_(addr) {
   port_ = ntohs(addr.sin_port);
 }
 
-
-IPNetAddr::~IPNetAddr(){
-	// RPC_INFO_LOG("~IPNetAddr");
+IPNetAddr::~IPNetAddr() {
+  // std::cout << "析构IPNetAddr" << std::endl;
+  // RPC_INFO_LOG("~IPNetAddr");
 }
 
 sockaddr *IPNetAddr::GetSockAddr() {

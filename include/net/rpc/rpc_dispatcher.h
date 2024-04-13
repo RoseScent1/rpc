@@ -10,7 +10,7 @@ public:
 	static RpcDispatcher* GetRpcDispatcher();
   void Dispatch(AbstractProtocol::s_ptr request,
                 AbstractProtocol::s_ptr response);
-
+	~RpcDispatcher() = default;
 	void RegisterService(std::shared_ptr<google::protobuf::Service> service);
 private:
 	bool ParseServiceFullName(const std::string &full_name, std::string &service_name,  std::string &method_name);

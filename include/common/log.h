@@ -161,13 +161,13 @@ enum LogLevel { Unknow = 0, Debug, Info, Error };
 class Logger {
 public:
   using s_ptr = std::shared_ptr<Logger>;
-
+  ~Logger();
   Logger();
 
   void Init();
   void PushRpcLog(const std::string &msg);
   void PushAppLog(const std::string &msg);
-	void Stop();
+  void Stop();
   LogLevel GetLogLevel() { return log_level_; }
   void Async();
   static void InitGlobalLogger();
@@ -182,6 +182,7 @@ private:
   std::unique_ptr<SyncLogger> rpc_sync_logger_;
   std::unique_ptr<SyncLogger> app_sync_logger_;
   TimerEvent::s_ptr time_event_;
+  bool flag_;
 };
 
 auto LogLevelToString(LogLevel log_level) -> std::string;
@@ -204,6 +205,7 @@ private:
   int32_t pid_;
   int32_t thread_id_;
   LogLevel level_;
+  std::mutex latch_;
 };
 
 } // namespace rocket
